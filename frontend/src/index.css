@@ -90,6 +90,36 @@
 }
 
 @layer components {
+  /* Fine dot lattice; pair with a mask-* utility so it fades out instead of ending in a hard edge. */
+  .bg-dots {
+    background-image: radial-gradient(rgb(14 23 38 / 0.17) 1px, transparent 1.3px);
+    background-size: 22px 22px;
+  }
+  .bg-dots-accent {
+    background-image: radial-gradient(rgb(13 130 116 / 0.22) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+  }
+  .mask-fade-radial {
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+  }
+  .mask-fade-right {
+    mask-image: radial-gradient(ellipse 60% 70% at 85% 30%, #000 20%, transparent 70%);
+  }
+  .mask-fade-left {
+    mask-image: radial-gradient(ellipse 65% 75% at 12% 55%, #000 25%, transparent 75%);
+  }
+
+  /* Paper-like grain: a single fixed, non-interactive layer, so it never repaints while scrolling. */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.05 0 0 0 0 0.09 0 0 0 0 0.15 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
   /* Loading placeholder that matches the shape it replaces. */
   .skeleton {
     @apply rounded-md;

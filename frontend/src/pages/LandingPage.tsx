@@ -57,8 +57,13 @@ const LIFECYCLE = ['Draft', 'Quotation', 'Confirmed', 'Active', 'Closed']
 
 export function LandingPage() {
   return (
-    <div className="relative min-h-[100dvh] overflow-x-clip bg-background">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[900px] bg-[radial-gradient(60%_50%_at_78%_8%,rgb(20_166_147/0.14),transparent_70%),radial-gradient(40%_40%_at_10%_0%,rgb(14_23_38/0.06),transparent_70%)]" />
+    <div className="grain relative min-h-[100dvh] overflow-x-clip bg-background">
+      {/* Hero backdrop: brand-teal light from the top right, a dot lattice behind the product shot, a cool shadow top left. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[1300px]">
+        <div className="absolute inset-0 bg-[radial-gradient(55%_45%_at_78%_10%,rgb(20_166_147/0.18),transparent_70%),radial-gradient(35%_40%_at_8%_0%,rgb(14_23_38/0.07),transparent_70%),radial-gradient(40%_30%_at_40%_95%,rgb(20_166_147/0.07),transparent_70%)]" />
+        <div className="bg-dots mask-fade-right absolute inset-0" />
+        <div className="absolute inset-x-0 bottom-0 h-[420px] bg-gradient-to-b from-transparent to-background" />
+      </div>
 
       <header className="fixed inset-x-0 top-4 z-30 px-4">
         <nav
@@ -88,7 +93,7 @@ export function LandingPage() {
       </header>
 
       <main>
-        <section className="relative mx-auto grid max-w-[1320px] items-center gap-14 px-4 pb-24 pt-32 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:pb-32 lg:pt-40">
+        <section className="relative mx-auto grid max-w-[1320px] items-center gap-14 px-4 pb-16 pt-32 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:pb-20 lg:pt-40">
           <div className="lg:col-span-5">
             <Reveal>
               <p className="inline-flex rounded-full bg-accent-soft px-3 py-1 text-[12px] font-medium text-accent-dark ring-1 ring-accent-dark/10">Subscription billing for Brightloop Software</p>
@@ -126,7 +131,14 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section id="features" className="mx-auto max-w-[1240px] scroll-mt-28 px-4 py-24 sm:px-8 lg:py-32">
+        <section id="features" className="relative isolate mx-auto max-w-[1240px] scroll-mt-28 px-4 py-24 sm:px-8 lg:py-32">
+          {/* Features backdrop: a tinted band that bleeds past the container, dots behind the heading, and two soft glows under the bento. */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-[100vw] -translate-x-1/2">
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgb(226_233_236/0.6)_30%,rgb(226_233_236/0.6)_78%,transparent)]" />
+            <div className="bg-dots mask-fade-left absolute inset-x-0 top-0 h-[560px]" />
+            <div className="bg-dots-accent mask-fade-right absolute inset-x-0 bottom-0 h-[620px]" />
+            <div className="absolute inset-0 bg-[radial-gradient(38%_32%_at_15%_62%,rgb(20_166_147/0.22),transparent_70%),radial-gradient(32%_30%_at_90%_22%,rgb(14_23_38/0.08),transparent_70%),radial-gradient(34%_28%_at_78%_88%,rgb(20_166_147/0.18),transparent_70%)]" />
+          </div>
           <Reveal>
             <h2 className="max-w-[20ch] text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-5xl">Everything between the quote and the payment.</h2>
           </Reveal>
@@ -209,7 +221,8 @@ export function LandingPage() {
         <section className="mx-auto max-w-[1240px] px-4 pb-24 sm:px-8 lg:pb-32">
           <Reveal>
             <Bezel inner="relative overflow-hidden px-8 py-16 sm:px-14 sm:py-20">
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_100%_100%,rgb(20_166_147/0.16),transparent_70%)]" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_100%_100%,rgb(20_166_147/0.18),transparent_70%),radial-gradient(30%_60%_at_0%_0%,rgb(14_23_38/0.05),transparent_70%)]" />
+              <div aria-hidden="true" className="bg-dots-accent mask-fade-right pointer-events-none absolute inset-0" />
               <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
                 <div>
                   <h2 className="max-w-[18ch] text-3xl font-semibold leading-[1.1] tracking-[-0.035em] text-ink sm:text-4xl">Already billed by Brightloop?</h2>
