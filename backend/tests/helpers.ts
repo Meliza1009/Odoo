@@ -44,6 +44,17 @@ export async function createUser(role: Role, opts: { companyName?: string } = {}
   return { id, token, auth: { Authorization: `Bearer ${token}` }, customerId };
 }
 
+/** Creates a subscription through the API and walks it Draft -> Quotation -> Confirmed -> Active. Returns its id. */
+export async function createActiveSubscription(staff: TestUser, body: Record<string, unknown>): Promise<number> {
+  const created = await api().post('/api/subscriptions').set(staff.auth).send(body);
+  if (created.status !== 201) throw new Error(`create subscription failed: ${JSON.stringify(created.body)}`);
+  for (const status of ['quotation', 'confirmed', 'active']) {
+    const res = await api().put(`/api/subscriptions/${created.body.id}/status`).set(staff.auth).send({ status });
+    if (res.status !== 200) throw new Error(`transition to ${status} failed: ${JSON.stringify(res.body)}`);
+  }
+  return created.body.id;
+}
+
 export async function createCustomer(companyName: string, userId: number | null = null): Promise<number> {
   const { rows } = await pool.query<{ id: number }>(
     `INSERT INTO customers (user_id, company_name, contact_name) VALUES ($1, $2, $2) RETURNING id`,
