@@ -102,13 +102,13 @@ async function createPeriodInvoice(
   // Discount validity is judged on the period being billed, so a discount stops as soon as it expires.
   const discounts = await eligibleDiscounts(client, sub.id, periodStart);
   const calc = calculateInvoice(lines, discounts, taxRules, sub.region);
-  const status = opts.autoConfirm ? (calc.grandTotal === 0 ? 'paid' : 'confirmed') : 'draft';
+  const status = calc.grandTotal === 0 ? 'paid' : opts.autoConfirm ? 'confirmed' : 'draft';
 
   const inserted = await client.query<{ id: number }>(
     `INSERT INTO invoices (subscription_id, customer_id, billing_run_id, status, billing_period_start, billing_period_end,
                            invoice_date, due_date, customer_name, customer_email, billing_address, tax_number,
                            subtotal, discount_total, tax_total, grand_total, confirmed_at, paid_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, ${opts.autoConfirm ? 'now()' : 'NULL'}, ${status === 'paid' ? 'now()' : 'NULL'})
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, ${status !== 'draft' ? 'now()' : 'NULL'}, ${status === 'paid' ? 'now()' : 'NULL'})
      ON CONFLICT ON CONSTRAINT uq_invoices_subscription_period DO NOTHING
      RETURNING id`,
     [

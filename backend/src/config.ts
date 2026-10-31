@@ -1,6 +1,8 @@
 const env = process.env;
 
 const isProduction = env.NODE_ENV === 'production';
+const billingScheduleIntervalMs = Number(env.BILLING_SCHEDULE_INTERVAL_MS ?? 3600000);
+if (!Number.isFinite(billingScheduleIntervalMs) || billingScheduleIntervalMs < 60000) throw new Error('BILLING_SCHEDULE_INTERVAL_MS must be at least 60000');
 
 function required(name: string, devFallback: string): string {
   const value = env[name];
@@ -22,6 +24,9 @@ export const config = {
     .split(',')
     .map((url) => url.trim().replace(/\/$/, ''))
     .filter(Boolean),
+  billingScheduleEnabled: env.BILLING_SCHEDULE_ENABLED === 'true',
+  billingScheduleIntervalMs,
+  billingScheduleAutoConfirm: env.BILLING_SCHEDULE_AUTO_CONFIRM === 'true',
   smtp: {
     host: env.SMTP_HOST ?? '',
     port: Number(env.SMTP_PORT ?? 1025),

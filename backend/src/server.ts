@@ -1,6 +1,7 @@
 import { createApp } from './app.js';
 import { config } from './config.js';
 import { pool } from './db/pool.js';
+import { runScheduledBilling, startBillingScheduler } from './modules/billing/scheduler.js';
 import { closeExpiredSubscriptions } from './modules/subscriptions/service.js';
 
 const server = createApp().listen(config.port, () => {
@@ -16,8 +17,23 @@ async function autoCloseJob() {
     console.error('[auto-close] failed:', (error as Error).message);
   }
 }
-void autoCloseJob();
-const autoCloseTimer = setInterval(autoCloseJob, 60 * 60 * 1000);
+let autoCloseInFlight: Promise<void> | null = null;
+function runAutoClose() {
+  if (!autoCloseInFlight) autoCloseInFlight = autoCloseJob().finally(() => { autoCloseInFlight = null; });
+  return autoCloseInFlight;
+}
+
+const billingScheduler = startBillingScheduler({
+  run: async () => {
+    const result = await runScheduledBilling();
+    if (result.status !== 'locked') await runAutoClose();
+    return result;
+  },
+});
+// When billing is enabled, the scheduler runs expiry maintenance after billing. Manual-billing deployments
+// retain the original expiry maintenance job; its closure path also protects outstanding due periods.
+const autoCloseTimer = config.billingScheduleEnabled ? null : setInterval(() => { void runAutoClose(); }, 60 * 60 * 1000);
+if (!config.billingScheduleEnabled) void runAutoClose();
 
 /**
  * Free Render instances spin down after 15 minutes without inbound traffic. Requesting our own public URL goes
@@ -34,14 +50,26 @@ const keepAliveTimer = config.keepAliveUrl
   : null;
 if (keepAliveTimer) console.log(`[keep-alive] pinging ${config.keepAliveUrl}/health every ${KEEP_ALIVE_INTERVAL_MS / 60_000} minutes`);
 
-function shutdown(signal: string) {
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`${signal} received, shutting down`);
-  clearInterval(autoCloseTimer);
+  if (autoCloseTimer) clearInterval(autoCloseTimer);
   if (keepAliveTimer) clearInterval(keepAliveTimer);
-  server.close(() => {
-    pool.end().finally(() => process.exit(0));
+  const requestsDrained = new Promise<void>((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
   });
+  await Promise.all([requestsDrained, billingScheduler.stop(), autoCloseInFlight]);
+  await pool.end();
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  process.on(signal, () => {
+    if (shuttingDown) return;
+    shutdown(signal).then(() => process.exit(0)).catch((error: Error) => {
+      console.error('[shutdown] failed:', error.message);
+      process.exit(1);
+    });
+  });
+}

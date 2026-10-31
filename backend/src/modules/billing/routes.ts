@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { config } from '../../config.js';
 import { query } from '../../db/pool.js';
 import { assertCustomerAccess } from '../../lib/customer-access.js';
 import { todayIso } from '../../lib/dates.js';
@@ -58,4 +59,13 @@ billingRouter.post('/subscriptions/:id/generate', async (req, res) => {
   }
   const result = await billSubscription(id, todayIso(), { autoConfirm, actorId: currentUser(req).id });
   res.status(201).json(result);
+});
+
+/** Deployment schedule settings and the durable checkpoint, without exposing secrets. */
+billingRouter.get('/schedule', requireAdmin, async (_req, res) => {
+  const { rows } = await query<{ lastSuccessAt: string | null }>(
+    `SELECT last_success_at AS "lastSuccessAt" FROM billing_scheduler_state WHERE job_name='recurring_billing'`,
+  );
+  res.json({ enabled: config.billingScheduleEnabled, intervalMs: config.billingScheduleIntervalMs,
+    autoConfirm: config.billingScheduleAutoConfirm, lastSuccessAt: rows[0]?.lastSuccessAt ?? null });
 });

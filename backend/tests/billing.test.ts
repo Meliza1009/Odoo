@@ -199,3 +199,14 @@ describe('automatic confirmation', () => {
     expect(timestamps.rows[0].paid_at).toBeTruthy();
   });
 });
+
+it('settles a zero-total generated invoice even when positive invoices require draft review', async () => {
+  const id = await subscription();
+  await pool.query('UPDATE subscription_lines SET unit_price = 0 WHERE subscription_id = $1', [id]);
+  await runBilling(today, { autoConfirm: false });
+  const [invoice] = await invoicesFor(id);
+  expect(invoice).toMatchObject({ status: 'paid', grandTotal: 0 });
+  const timestamps = await pool.query('SELECT confirmed_at, paid_at FROM invoices WHERE id = $1', [invoice.id]);
+  expect(timestamps.rows[0].confirmed_at).toBeTruthy();
+  expect(timestamps.rows[0].paid_at).toBeTruthy();
+});

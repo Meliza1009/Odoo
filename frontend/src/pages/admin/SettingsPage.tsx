@@ -11,6 +11,9 @@ import { applyServerErrors, idOrNull } from '../../lib/forms'
 import { formatDate, formatDateTime, formatPercent, titleCase } from '../../lib/format'
 import { PRODUCT_TYPES, type BillingRun, type ProductType, type TaxRule } from '../../types'
 
+interface BillingSchedule { enabled: boolean; intervalMs: number; autoConfirm: boolean; lastSuccessAt: string | null }
+const loadBillingSchedule = async () => (await api.get<BillingSchedule>('/billing/schedule')).data
+
 export function SettingsPage() {
   const [tab, setTab] = useState<'taxes' | 'billing'>('taxes')
   return (
@@ -185,6 +188,7 @@ function TaxRuleModal({ rule, onClose, onSaved }: { rule: TaxRule | null; onClos
 function Billing() {
   const toast = useToast()
   const runs = usePagedList<BillingRun>('/billing/runs', {}, 10)
+  const schedule = useAsync(loadBillingSchedule)
   const [billingOpen, setBillingOpen] = useState(false)
   const [closing, setClosing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -204,10 +208,23 @@ function Billing() {
 
   return (
     <div className="space-y-6">
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-semibold text-ink">Automatic billing</h2>
+          <Button size="sm" variant="secondary" onClick={schedule.reload}>Refresh schedule</Button>
+        </div>
+        {schedule.loading && <p className="mt-2 text-sm text-muted">Loading schedule…</p>}
+        {schedule.error && <div className="mt-2"><Alert tone="error">{schedule.error}</Alert></div>}
+        {schedule.data && <div className="mt-2 space-y-1 text-sm text-muted">
+          <p>{schedule.data.enabled ? `Checks for due periods every ${schedule.data.intervalMs / 60000} minutes while the service is online, and catches up after a restart.` : 'Automatic billing is off. Use Run billing to generate due invoices.'}</p>
+          {schedule.data.enabled && <p>{schedule.data.autoConfirm ? 'Generated invoices are confirmed immediately.' : 'Positive-total invoices are saved as drafts for review; zero-total invoices are Paid.'}</p>}
+          <p>Last successful scheduled run: {schedule.data.lastSuccessAt ? formatDateTime(schedule.data.lastSuccessAt) : 'No completed run yet'}</p>
+        </div>}
+      </Card>
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-5">
           <h2 className="font-semibold text-ink">Billing day</h2>
-          <p className="mt-1 text-sm text-slate-600">Generate invoices for every active subscription that is due. Already billed periods are never billed again.</p>
+          <p className="mt-1 text-sm text-slate-600">Generate invoices for due active periods and periods from before a subscription was paused. Already billed periods are never billed again.</p>
           <Button className="mt-4" variant="accent" icon={<ReceiptIcon className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
             Run billing
           </Button>

@@ -18,7 +18,7 @@ Subscription management for customers, quotations, recurring billing, invoices, 
 - **Notifications:** account-scoped invoice reminders, quotations, and upcoming subscription expiries, with saved read status.
 - **Authentication:** JWT sessions, password reset, and server-enforced role and customer access checks.
 
-Regular invoice generation is triggered through **Run billing** or the billing API. Subscription expiry processing runs at startup and hourly, invoices remaining due periods, and then closes the subscription. Paused intervals are excluded. Renewal restores stopped billing on the original schedule without repeating billed cycles. There is no general scheduled billing run configured by default.
+Regular invoice generation is triggered through **Run billing** or the billing API. Subscription expiry processing runs at startup and hourly, invoices remaining due periods, and then closes the subscription. Paused intervals are excluded. Renewal restores stopped billing on the original schedule without repeating billed cycles. Optional scheduled billing checks for due periods at startup and hourly. It is enabled in the Render configuration and disabled by default locally. The scheduler uses a database lock and checkpoint so multiple instances and restarts do not repeat successful checks. Failed runs retry on the next tick; invoice periods remain idempotent. Render free instances can sleep, so missed periods are caught up when the service starts again.
 
 This README describes the current source tree. The live demo reflects the latest deployed Git commit; local changes appear there after they are committed, pushed, and deployed.
 
@@ -31,6 +31,8 @@ This README describes the current source tree. The live demo reflects the latest
 | **Customer** | Their own account and billing records, available plans/products, personal discounts, notifications, and plan-permitted pause/resume/renew/close actions. |
 
 Assign a customer through **Admin → Customers → select customer → Edit → Assigned staff**. Existing unassigned customers remain accessible to admins until assigned.
+
+Scheduled runs create draft invoices for review unless `BILLING_SCHEDULE_AUTO_CONFIRM=true`. Zero-total invoices are marked Paid automatically. Admins can see schedule configuration and the last successful run in **Settings → Billing**.
 
 **Outstanding** is the remaining unpaid amount on confirmed invoices. **Overdue** is the portion whose payment due date has passed.
 
@@ -124,6 +126,9 @@ Backend development, migration, and seed commands load the root `.env` file. Fro
 | `JWT_EXPIRES_IN` | Session token lifetime; defaults to `8h`. |
 | `PORT` | API port; defaults to `4000`. |
 | `FRONTEND_URL` | Allowed frontend origin and password-reset link base. |
+| `BILLING_SCHEDULE_ENABLED` | Enable unattended billing checks (`true`/`false`, default `false`). |
+| `BILLING_SCHEDULE_INTERVAL_MS` | Check interval, default `3600000` (one hour), minimum `60000`. |
+| `BILLING_SCHEDULE_AUTO_CONFIRM` | Confirm positive-total scheduled invoices immediately; default `false`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_FROM` | Optional email delivery settings. Without an SMTP host, emails are logged to the server console. |
 | `VITE_API_URL` | Frontend API base URL; defaults to `http://localhost:4000/api`. |
 | `VITE_SHOW_DEMO_LOGINS` | Set to `true` to show demo-login shortcuts in production builds. Shortcuts are always shown in development. |

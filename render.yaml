@@ -51,6 +51,12 @@ services:
         value: https://brightloop-odoo-web.onrender.com
       - key: SEED_DEMO_DATA # Demo logins + sample data for judging. Set to "false" for a real deployment.
         value: 'true'
+      - key: BILLING_SCHEDULE_ENABLED
+        value: 'true'
+      - key: BILLING_SCHEDULE_INTERVAL_MS
+        value: '3600000'
+      - key: BILLING_SCHEDULE_AUTO_CONFIRM
+        value: 'false'
       - key: SMTP_FROM
         value: Brightloop <no-reply@brightloop.demo>
 
