@@ -8,30 +8,40 @@ interface AuthResponse {
   user: User
 }
 
+/** Resolves the user for the stored token, or null (dropping the token) when there is no valid session. */
+async function loadSession(): Promise<User | null> {
+  if (!localStorage.getItem(TOKEN_KEY)) return null
+  try {
+    const { data } = await api.get<{ user: User }>('/auth/me')
+    return data.user
+  } catch {
+    localStorage.removeItem(TOKEN_KEY)
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(() => !!localStorage.getItem(TOKEN_KEY))
 
   const refresh = useCallback(async () => {
-    if (!localStorage.getItem(TOKEN_KEY)) {
-      setUser(null)
-      return
-    }
-    try {
-      const { data } = await api.get<{ user: User }>('/auth/me')
-      setUser(data.user)
-    } catch {
-      localStorage.removeItem(TOKEN_KEY)
-      setUser(null)
-    }
+    setUser(await loadSession())
   }, [])
 
   useEffect(() => {
-    refresh().finally(() => setLoading(false))
+    let cancelled = false
+    loadSession().then((sessionUser) => {
+      if (cancelled) return
+      setUser(sessionUser)
+      setLoading(false)
+    })
     const onUnauthorized = () => setUser(null)
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
-    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
-  }, [refresh])
+    return () => {
+      cancelled = true
+      window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+    }
+  }, [])
 
   const acceptSession = useCallback(({ token, user: nextUser }: AuthResponse) => {
     localStorage.setItem(TOKEN_KEY, token)

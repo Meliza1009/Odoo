@@ -1,30 +1,36 @@
 import { useCallback, useEffect, useState } from 'react'
 import { errorMessage } from '../api/client'
 
-/** Loads data on mount and whenever `deps` change; exposes loading/error state and a reload function. */
-export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [version, setVersion] = useState(0)
+interface Settled<T> {
+  fn: () => Promise<T>
+  version: number
+  data: T | null
+  error: string | null
+}
 
-  const run = useCallback(fn, deps)
+/**
+ * Runs `fn` on mount and whenever it changes; exposes loading/error state and a reload function.
+ * Wrap `fn` in `useCallback` so it only changes when its inputs do.
+ */
+export function useAsync<T>(fn: () => Promise<T>) {
+  const [version, setVersion] = useState(0)
+  const [settled, setSettled] = useState<Settled<T> | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    run()
-      .then((result) => !cancelled && setData(result))
-      .catch((err) => !cancelled && setError(errorMessage(err)))
-      .finally(() => !cancelled && setLoading(false))
+    fn()
+      .then((data) => !cancelled && setSettled({ fn, version, data, error: null }))
+      .catch((err) => !cancelled && setSettled((prev) => ({ fn, version, data: prev?.data ?? null, error: errorMessage(err) })))
     return () => {
       cancelled = true
     }
-  }, [run, version])
+  }, [fn, version])
 
+  const current = settled?.fn === fn && settled.version === version ? settled : null
   const reload = useCallback(() => setVersion((v) => v + 1), [])
-  return { data, error, loading, reload, setData }
+  const setData = useCallback((data: T | null) => setSettled({ fn, version, data, error: null }), [fn, version])
+
+  return { data: settled?.data ?? null, error: current?.error ?? null, loading: current === null, reload, setData }
 }
 
 export function useDebounced<T>(value: T, delay = 300): T {
