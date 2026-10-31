@@ -5,6 +5,10 @@ import morgan from 'morgan';
 import { config } from './config.js';
 import { pool } from './db/pool.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { plansRouter } from './modules/plans/routes.js';
+import { productsRouter } from './modules/products/routes.js';
+import { quotationTemplatesRouter } from './modules/quotation-templates/routes.js';
+import { subscriptionsRouter } from './modules/subscriptions/routes.js';
 
 export function createApp() {
   const app = express();
@@ -23,6 +27,10 @@ export function createApp() {
 
   // Each module registers its router here (one line per module).
   const api = Router();
+  api.use('/products', productsRouter);
+  api.use('/plans', plansRouter);
+  api.use('/quotation-templates', quotationTemplatesRouter);
+  api.use('/subscriptions', subscriptionsRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);

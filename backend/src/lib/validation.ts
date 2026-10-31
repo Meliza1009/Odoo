@@ -28,7 +28,32 @@ export const optionalText = (max = 500) =>
     .nullable()
     .transform((v) => (v ? v : null));
 
-export const idParamSchema = z.object({ id: z.coerce.number().int().positive() });
+export const idSchema = z.coerce.number().int().positive();
+
+export const idParamSchema = z.object({ id: idSchema });
+
+export const moneySchema = z.coerce
+  .number({ error: 'Enter a valid amount' })
+  .min(0, 'Amount cannot be negative')
+  .max(9_999_999_999.99, 'Amount is too large')
+  .transform((v) => Math.round(v * 100) / 100);
+
+export const percentSchema = z.coerce
+  .number({ error: 'Enter a valid percentage' })
+  .min(0, 'Percentage cannot be negative')
+  .max(100, 'Percentage cannot exceed 100');
+
+export const dateSchema = z.iso.date('Enter a valid date (YYYY-MM-DD)');
+
+export const optionalDateSchema = z
+  .union([dateSchema, z.literal(''), z.null()])
+  .optional()
+  .transform((v) => (v ? v : null));
+
+export const booleanQuery = z
+  .enum(['true', 'false'])
+  .optional()
+  .transform((v) => v === 'true');
 
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

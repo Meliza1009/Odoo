@@ -2,6 +2,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { migrate } from '../src/db/migrate.js';
 import { pool } from '../src/db/pool.js';
+import { signToken, type Role } from '../src/lib/jwt.js';
 
 export const app = createApp();
 export const api = () => request(app);
@@ -17,4 +18,36 @@ export async function resetDatabase() {
 
 export async function closeDatabase() {
   await pool.end();
+}
+
+let userCounter = 0;
+
+export interface TestUser {
+  id: number;
+  token: string;
+  auth: { Authorization: string };
+  customerId: number | null;
+}
+
+/** Inserts a user directly (bypassing the auth module) and returns a signed JWT for it. */
+export async function createUser(role: Role, opts: { companyName?: string } = {}): Promise<TestUser> {
+  userCounter += 1;
+  const email = `${role}${userCounter}-${Date.now()}@test.brightloop.demo`;
+  const { rows } = await pool.query<{ id: number }>(
+    `INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, 'not-a-real-hash', $2, $3) RETURNING id`,
+    [email, `Test ${role} ${userCounter}`, role],
+  );
+  const id = rows[0].id;
+  let customerId: number | null = null;
+  if (role === 'customer') customerId = await createCustomer(opts.companyName ?? `Customer Co ${userCounter}`, id);
+  const token = signToken(id, role);
+  return { id, token, auth: { Authorization: `Bearer ${token}` }, customerId };
+}
+
+export async function createCustomer(companyName: string, userId: number | null = null): Promise<number> {
+  const { rows } = await pool.query<{ id: number }>(
+    `INSERT INTO customers (user_id, company_name, contact_name) VALUES ($1, $2, $2) RETURNING id`,
+    [userId, companyName],
+  );
+  return rows[0].id;
 }
