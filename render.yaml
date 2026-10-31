@@ -1,0 +1,89 @@
+# Render Blueprint: managed Postgres + Node API + static React frontend.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Service names double as public subdomains (<name>.onrender.com). The frontend and API reference each
+# other by those public URLs, so if you rename a service, update VITE_API_URL / FRONTEND_URL below too.
+#
+# Live services were created from this definition with the Render CLI (`render pg create`, `render services create`),
+# and the static-site routes/headers via the Render API, since the CLI has no flags for them.
+
+databases:
+  - name: brightloop-db
+    plan: free # Free Render Postgres expires 30 days after creation; upgrade the plan to keep the data.
+    region: oregon
+    databaseName: brightloop
+    user: brightloop
+    postgresMajorVersion: '16'
+
+services:
+  - type: web
+    name: brightloop-odoo-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    # Built from the repo root so database/migrations ships alongside backend/dist.
+    # --include=dev: NODE_ENV=production is also set at build time, and the TypeScript build needs dev dependencies.
+    buildCommand: cd backend && npm ci --include=dev && npm run build
+    # Free instances do not support preDeployCommand, so migrations (and the idempotent demo seed) run on start.
+    startCommand: cd backend && node dist/db/migrate.js && { [ "$SEED_DEMO_DATA" != "true" ] || node dist/db/seed.js; } && exec node dist/server.js
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - backend/**
+        - database/migrations/**
+      ignoredPaths:
+        - backend/tests/**
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: brightloop-db
+          property: connectionString # Internal connection string: private network, no SSL needed.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: FRONTEND_URL # CORS allow-list and the base of password-reset links.
+        value: https://brightloop-odoo-web.onrender.com
+      - key: SEED_DEMO_DATA # Demo logins + sample data for judging. Set to "false" for a real deployment.
+        value: 'true'
+      - key: SMTP_FROM
+        value: Brightloop <no-reply@brightloop.demo>
+
+  - type: web
+    name: brightloop-odoo-web
+    runtime: static
+    branch: main
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    buildFilter:
+      paths:
+        - frontend/**
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: VITE_API_URL # Baked into the bundle at build time; the browser calls the API over its public URL.
+        value: https://brightloop-odoo-api.onrender.com/api
+      - key: VITE_SHOW_DEMO_LOGINS
+        value: 'true'
+    routes:
+      - type: rewrite # Client-side routing: serve the SPA for any path that is not a real file.
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

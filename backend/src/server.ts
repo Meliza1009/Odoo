@@ -19,9 +19,25 @@ async function autoCloseJob() {
 void autoCloseJob();
 const autoCloseTimer = setInterval(autoCloseJob, 60 * 60 * 1000);
 
+/**
+ * Free Render instances spin down after 15 minutes without inbound traffic. Requesting our own public URL goes
+ * through Render's proxy, so it counts as traffic. Pinging every 10 minutes keeps the demo awake while it runs
+ * (the GitHub keep-alive workflow covers restarts).
+ */
+const KEEP_ALIVE_INTERVAL_MS = 10 * 60 * 1000;
+const keepAliveTimer = config.keepAliveUrl
+  ? setInterval(() => {
+      fetch(`${config.keepAliveUrl}/health`, { signal: AbortSignal.timeout(30_000) })
+        .then((res) => res.ok || console.warn(`[keep-alive] health check returned ${res.status}`))
+        .catch((error: Error) => console.warn('[keep-alive] ping failed:', error.message));
+    }, KEEP_ALIVE_INTERVAL_MS)
+  : null;
+if (keepAliveTimer) console.log(`[keep-alive] pinging ${config.keepAliveUrl}/health every ${KEEP_ALIVE_INTERVAL_MS / 60_000} minutes`);
+
 function shutdown(signal: string) {
   console.log(`${signal} received, shutting down`);
   clearInterval(autoCloseTimer);
+  if (keepAliveTimer) clearInterval(keepAliveTimer);
   server.close(() => {
     pool.end().finally(() => process.exit(0));
   });

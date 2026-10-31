@@ -28,4 +28,6 @@ export const config = {
     from: env.SMTP_FROM ?? 'Brightloop <no-reply@brightloop.demo>',
   },
   passwordResetTtlMinutes: 30,
+  /** Public URL to ping so a free Render instance never idles out. Render sets RENDER_EXTERNAL_URL automatically. */
+  keepAliveUrl: env.KEEP_ALIVE === 'false' ? null : (env.KEEP_ALIVE_URL ?? env.RENDER_EXTERNAL_URL ?? '').replace(/\/$/, '') || null,
 };
