@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, addInterval, maxDate } from '../src/lib/dates.js';
+import { addDays, addInterval, maxDate, nextAnchoredDate } from '../src/lib/dates.js';
 import { lineAmounts, sumAmounts } from '../src/lib/money.js';
 
 describe('money', () => {
@@ -27,6 +27,20 @@ describe('dates', () => {
     expect(addInterval('2026-01-31', 'monthly')).toBe('2026-02-28');
     expect(addInterval('2028-01-31', 'monthly')).toBe('2028-02-29');
     expect(addInterval('2028-02-29', 'yearly')).toBe('2029-02-28');
+  });
+
+  it('anchors billing dates to the start date so month ends do not drift', () => {
+    expect(nextAnchoredDate('2026-08-31', '2026-08-31', 'monthly')).toBe('2026-09-30');
+    expect(nextAnchoredDate('2026-08-31', '2026-09-30', 'monthly')).toBe('2026-10-31');
+    expect(nextAnchoredDate('2026-01-31', '2026-02-28', 'monthly')).toBe('2026-03-31');
+    expect(nextAnchoredDate('2028-02-29', '2028-02-29', 'yearly')).toBe('2029-02-28');
+    expect(nextAnchoredDate('2028-02-29', '2029-02-28', 'yearly')).toBe('2030-02-28');
+    expect(nextAnchoredDate('2026-01-01', '2026-01-01', 'weekly')).toBe('2026-01-08');
+    expect(nextAnchoredDate('2026-01-01', '2026-01-03', 'daily')).toBe('2026-01-04');
+    // Resumed mid-cycle: the next date snaps back onto the original schedule
+    expect(nextAnchoredDate('2026-01-15', '2026-03-10', 'monthly')).toBe('2026-03-15');
+    expect(nextAnchoredDate('2026-01-15', '2026-03-20', 'monthly')).toBe('2026-04-15');
+    expect(nextAnchoredDate('2026-01-15', '2026-05-01', 'yearly')).toBe('2027-01-15');
   });
 
   it('handles day arithmetic across years', () => {

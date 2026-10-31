@@ -4,15 +4,15 @@ import { seeds } from './seeds/index.js';
 
 /**
  * Idempotent demo data. Every module adds its own seed function to ./seeds/index.ts.
- * Seeds run in order inside one transaction, so later seeds can use data from earlier ones.
+ * Seeds run in order; each normal seed runs in its own transaction. Standalone seeds manage their own
+ * transactions (e.g. because they call services such as the billing engine).
  */
 export async function seed(log: (msg: string) => void = console.log) {
-  await withTransaction(async (client) => {
-    for (const { name, run } of seeds) {
-      await run(client);
-      log(`seeded ${name}`);
-    }
-  });
+  for (const entry of seeds) {
+    if (entry.standalone) await entry.run();
+    else await withTransaction((client) => entry.run(client));
+    log(`seeded ${entry.name}`);
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
