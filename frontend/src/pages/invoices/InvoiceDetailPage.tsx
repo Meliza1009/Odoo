@@ -116,7 +116,20 @@ export function InvoiceDetailPage({ portal = false }: { portal?: boolean }) {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-primary/10 shadow-card lg:grid-cols-4">
+        {[
+          { label: 'Invoice total', value: formatMoney(invoice.grandTotal) },
+          { label: 'Paid', value: formatMoney(invoice.amountPaid) },
+          { label: 'Amount due', value: formatMoney(invoice.amountDue) },
+          { label: 'Due date', value: formatDate(invoice.dueDate) },
+        ].map(({ label, value }, index) => (
+          <div key={label} className={`min-w-0 p-4 sm:p-5 ${index === 2 && invoice.amountDue > 0 ? 'bg-accent-soft' : 'bg-surface'}`}>
+            <p className="text-xs text-muted">{label}</p>
+            <p className="mt-2 text-[clamp(1rem,2vw,1.35rem)] font-semibold tracking-[-0.03em] text-ink tabular-nums">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader title="Lines" />

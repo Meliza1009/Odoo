@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { pool } from '../src/db/pool.js';
 import { addDays, addInterval, todayIso } from '../src/lib/dates.js';
 import { runBilling } from '../src/modules/billing/engine.js';
-import { api, closeDatabase, createActiveSubscription, createUser, resetDatabase, type TestUser } from './helpers.js';
+import { assignCustomers, api, closeDatabase, createActiveSubscription, createUser, resetDatabase, type TestUser } from './helpers.js';
 
 let admin: TestUser;
 let staff: TestUser;
@@ -39,6 +39,7 @@ const nextBillingDate = async (id: number) =>
 beforeAll(async () => {
   await resetDatabase();
   [admin, staff, customer] = await Promise.all([createUser('admin'), createUser('staff'), createUser('customer', { companyName: 'Green Leaf Store' })]);
+  await assignCustomers(staff, customer.customerId!);
   const product = await api()
     .post('/api/products')
     .set(admin.auth)
@@ -53,7 +54,7 @@ afterAll(closeDatabase);
 describe('billing run', () => {
   it('creates one invoice per due subscription with customer details, lines, taxes and totals pre-filled', async () => {
     const id = await subscription();
-    const res = await api().post('/api/billing/run').set(staff.auth).send({});
+    const res = await api().post('/api/billing/run').set(admin.auth).send({});
     expect(res.status).toBe(201);
     expect(res.body).toMatchObject({ runDate: today, subscriptionsChecked: 1, invoicesCreated: 1, periodsSkipped: 0, errors: [] });
 
@@ -80,7 +81,7 @@ describe('billing run', () => {
 
   it('is idempotent: running again the same day bills nothing', async () => {
     const before = (await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM invoices')).rows[0].n;
-    const res = await api().post('/api/billing/run').set(staff.auth).send({});
+    const res = await api().post('/api/billing/run').set(admin.auth).send({});
     expect(res.body).toMatchObject({ subscriptionsChecked: 0, invoicesCreated: 0 });
     expect((await pool.query<{ n: number }>('SELECT count(*)::int AS n FROM invoices')).rows[0].n).toBe(before);
   });
@@ -152,13 +153,13 @@ describe('billing run', () => {
     expect(res.body.invoicesCreated).toBe(1);
     expect((await invoicesFor(id))[0].status).toBe('confirmed');
 
-    const runs = await api().get('/api/billing/runs').set(staff.auth);
+    const runs = await api().get('/api/billing/runs').set(admin.auth);
     expect(runs.body.total).toBeGreaterThanOrEqual(3);
     expect(runs.body.data[0]).toMatchObject({ status: 'completed', invoicesCreated: 1 });
   });
 
   it('rejects billing for a future date and blocks customers', async () => {
-    expect((await api().post('/api/billing/run').set(staff.auth).send({ runDate: addDays(today, 1) })).status).toBe(400);
+    expect((await api().post('/api/billing/run').set(admin.auth).send({ runDate: addDays(today, 1) })).status).toBe(400);
     expect((await api().post('/api/billing/run').set(customer.auth).send({})).status).toBe(403);
   });
 });
@@ -182,5 +183,18 @@ describe('generate invoice for one subscription', () => {
       .send({ customerId: customer.customerId, planId: monthlyPlanId, startDate: today, lines: [{ productId, quantity: 1 }] });
     const res = await api().post(`/api/billing/subscriptions/${quote.body.id}/generate`).set(staff.auth).send({});
     expect(res.status).toBe(409);
+  });
+});
+
+describe('automatic confirmation', () => {
+  it('settles zero-total invoices when billing auto-confirms them', async () => {
+    const id = await subscription();
+    await pool.query('UPDATE subscription_lines SET unit_price = 0 WHERE subscription_id = $1', [id]);
+    await runBilling(today, { autoConfirm: true });
+    const [invoice] = await invoicesFor(id);
+    expect(invoice).toMatchObject({ status: 'paid', grandTotal: 0 });
+    const timestamps = await pool.query('SELECT confirmed_at, paid_at FROM invoices WHERE id = $1', [invoice.id]);
+    expect(timestamps.rows[0].confirmed_at).toBeTruthy();
+    expect(timestamps.rows[0].paid_at).toBeTruthy();
   });
 });

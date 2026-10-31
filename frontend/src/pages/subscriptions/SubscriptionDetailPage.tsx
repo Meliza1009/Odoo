@@ -131,7 +131,20 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-surface bg-primary/10 shadow-card lg:grid-cols-4">
+        {[
+          { label: 'Plan', value: sub.planName },
+          { label: 'Recurring amount', value: formatMoney(sub.total) },
+          { label: 'Started', value: formatDate(sub.startDate) },
+          { label: 'Next billing', value: formatDate(sub.nextBillingDate) },
+        ].map(({ label, value }) => (
+          <div key={label} className="min-w-0 bg-surface p-4 sm:p-5">
+            <p className="text-xs text-muted">{label}</p>
+            <p className="mt-2 break-words text-[clamp(1rem,2vw,1.3rem)] font-semibold leading-tight tracking-[-0.03em] text-ink tabular-nums">{value}</p>
+          </div>
+        ))}
+      </div>
+      <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
             <CardHeader title="Order lines" />

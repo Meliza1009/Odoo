@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+  booleanQuery,
   dateSchema,
   idSchema,
   moneySchema,
@@ -60,6 +61,9 @@ export const renewInput = z
   .default({ periods: 1 });
 
 export const listSubscriptionsQuery = paginationSchema.extend({
+  renewalsDue: booleanQuery,
+  closedFrom: dateSchema.optional(),
+  closedTo: dateSchema.optional(),
   status: z
     .string()
     .optional()
@@ -67,4 +71,7 @@ export const listSubscriptionsQuery = paginationSchema.extend({
     .pipe(z.array(z.enum(SUBSCRIPTION_STATUSES))),
   customerId: idSchema.optional(),
   planId: idSchema.optional(),
+}).refine((q) => !q.closedFrom || !q.closedTo || q.closedFrom <= q.closedTo, {
+  message: 'Closed to date must be on or after closed from date',
+  path: ['closedTo'],
 });

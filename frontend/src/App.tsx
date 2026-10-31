@@ -31,6 +31,8 @@ const DiscountsPage = lazy(() => import('./pages/admin/DiscountsPage').then((m) 
 const StaffPage = lazy(() => import('./pages/admin/StaffPage').then((m) => ({ default: m.StaffPage })))
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const PortalDashboardPage = lazy(() => import('./pages/portal/PortalDashboardPage').then((m) => ({ default: m.PortalDashboardPage })))
+const PortalCatalogPage = lazy(() => import('./pages/portal/PortalCatalogPage').then((m) => ({ default: m.PortalCatalogPage })))
+const PortalDiscountsPage = lazy(() => import('./pages/portal/PortalDiscountsPage').then((m) => ({ default: m.PortalDiscountsPage })))
 const PortalSubscriptionsPage = lazy(() => import('./pages/portal/PortalSubscriptionsPage').then((m) => ({ default: m.PortalSubscriptionsPage })))
 
 /** Remounts list pages when their query string changes (e.g. dashboard link to ?status=overdue while already on the page). */
@@ -70,9 +72,9 @@ export default function App() {
               <Route path="invoices" element={<KeyedBySearch><InvoicesPage /></KeyedBySearch>} />
               <Route path="invoices/:id" element={<InvoiceDetailPage />} />
               <Route path="payments" element={<KeyedBySearch><PaymentsPage /></KeyedBySearch>} />
-              <Route path="reports" element={<ReportsPage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route element={<RequireAuth roles={['admin']} />}>
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="discounts" element={<DiscountsPage />} />
                 <Route path="staff" element={<StaffPage />} />
                 <Route path="settings" element={<SettingsPage />} />
@@ -83,11 +85,13 @@ export default function App() {
           <Route path="/portal" element={<RequireAuth roles={['customer']} />}>
             <Route element={<PortalLayout />}>
               <Route index element={<PortalDashboardPage />} />
-              <Route path="subscriptions" element={<PortalSubscriptionsPage />} />
+              <Route path="subscriptions" element={<KeyedBySearch><PortalSubscriptionsPage /></KeyedBySearch>} />
+              <Route path="catalog" element={<PortalCatalogPage />} />
+              <Route path="discounts" element={<PortalDiscountsPage />} />
               <Route path="subscriptions/:id" element={<SubscriptionDetailPage portal />} />
               <Route path="invoices" element={<KeyedBySearch><InvoicesPage portal /></KeyedBySearch>} />
               <Route path="invoices/:id" element={<InvoiceDetailPage portal />} />
-              <Route path="payments" element={<PaymentsPage portal />} />
+              <Route path="payments" element={<KeyedBySearch><PaymentsPage portal /></KeyedBySearch>} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Route>

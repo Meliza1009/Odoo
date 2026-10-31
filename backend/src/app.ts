@@ -17,6 +17,8 @@ import { quotationTemplatesRouter } from './modules/quotation-templates/routes.j
 import { reportsRouter } from './modules/reports/routes.js';
 import { subscriptionsRouter } from './modules/subscriptions/routes.js';
 import { taxRulesRouter } from './modules/taxes/routes.js';
+import { notificationsRouter } from './modules/notifications/routes.js';
+import { portalRoutes } from './modules/portal/routes.js';
 import { usersRouter } from './modules/users/routes.js';
 
 export function createApp() {
@@ -49,6 +51,8 @@ export function createApp() {
   api.use('/invoices', invoicesRouter);
   api.use('/payments', paymentsRouter);
   api.use('/reports', reportsRouter);
+  api.use('/portal', portalRoutes);
+  api.use('/notifications', notificationsRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);

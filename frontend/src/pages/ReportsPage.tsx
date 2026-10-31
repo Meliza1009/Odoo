@@ -1,8 +1,8 @@
-import { useCallback, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { BreakdownPie, RevenueChart } from '../components/charts'
-import { Alert, Button, Card, CardHeader, DataTable, Input, LoadingState, PageHeader, Pagination, Select, StatCard, StatusBadge, type Column } from '../components/ui'
+import { Alert, Button, Card, CardHeader, DataTable, Input, LoadingState, MetricStrip, PageHeader, Pagination, Select, StatusBadge, type Column } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { useLookups } from '../hooks/useLookups'
 import { usePagedList } from '../hooks/usePagedList'
@@ -37,6 +37,7 @@ const overdueColumns: Column<InvoiceRow>[] = [
 
 export function ReportsPage() {
   const navigate = useNavigate()
+  const { hash } = useLocation()
   const lookups = useLookups()
   const [filters, setFilters] = useState<Filters>({ dateFrom: PRESETS[2].from, dateTo: today, customerId: '', planId: '', paymentMethod: '' })
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }))
@@ -58,12 +59,15 @@ export function ReportsPage() {
   const customers = lookups.data?.customers.map((c) => ({ value: c.id, label: c.companyName })) ?? []
   const plans = lookups.data?.plans.map((p) => ({ value: p.id, label: p.name })) ?? []
   const data = report.data
+  useEffect(() => {
+    if (data && hash === '#recurring-revenue') document.getElementById('recurring-revenue')?.scrollIntoView({ block: 'start' })
+  }, [data, hash])
 
   return (
     <>
       <PageHeader title="Reports" description="Revenue, collections, subscriptions and overdue balances for any period." />
 
-      <Card className="mb-6 p-4">
+      <Card className="mb-6 p-5 sm:p-6">
         <div className="flex flex-wrap gap-2">
           {PRESETS.map((p) => (
             <Button key={p.label} size="sm" variant={filters.dateFrom === p.from && filters.dateTo === p.to ? 'primary' : 'secondary'} onClick={() => set({ dateFrom: p.from, dateTo: p.to })}>
@@ -71,7 +75,7 @@ export function ReportsPage() {
             </Button>
           ))}
         </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <Input label="From" type="date" value={filters.dateFrom} max={today} onChange={(e) => set({ dateFrom: e.target.value })} />
           <Input label="To" type="date" value={filters.dateTo} max={today} onChange={(e) => set({ dateTo: e.target.value })} error={invalidRange ? 'Must be after the start date' : undefined} />
           <Select label="Customer" value={filters.customerId} onChange={(e) => set({ customerId: e.target.value })} options={customers} placeholder="All customers" />
@@ -91,15 +95,27 @@ export function ReportsPage() {
 
       {data && (
         <div className={report.loading ? 'opacity-60 transition-opacity' : ''}>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatCard label="Revenue collected" value={formatMoney(data.summary.revenueCollected)} hint={`${data.summary.paymentCount} payments in period`} />
-            <StatCard label="Invoiced" value={formatMoney(data.summary.invoicedTotal)} hint={`${data.summary.invoiceCount} invoices in period`} />
-            <StatCard label="MRR (current)" value={formatMoney(data.summary.mrr)} hint={`ARR ${formatMoney(data.summary.arr)}`} />
-            <StatCard label="Overdue (today)" value={formatMoney(data.summary.overdueBalance)} hint={`${data.summary.overdueCount} invoices`} />
-            <StatCard label="Active subscriptions" value={data.summary.activeSubscriptions} hint={`${data.summary.pausedSubscriptions} paused`} />
-            <StatCard label="Outstanding balance" value={formatMoney(data.summary.outstandingBalance)} hint={`${data.summary.outstandingCount} unpaid invoices`} />
-            <StatCard label="Closed / cancelled" value={data.summary.cancelledSubscriptions} hint="in period" />
-            <StatCard label="Renewals due" value={data.summary.upcomingRenewals} hint="next 30 days" />
+          <MetricStrip
+            items={[
+              { label: 'Revenue collected', value: formatMoney(data.summary.revenueCollected), hint: `${data.summary.paymentCount} payments in period`, to: `/app/payments?dateFrom=${filters.dateFrom}&dateTo=${filters.dateTo}&customerId=${filters.customerId}&paymentMethod=${filters.paymentMethod}&planId=${filters.planId}` },
+              { label: 'Invoiced', value: formatMoney(data.summary.invoicedTotal), hint: `${data.summary.invoiceCount} invoices in period`, to: `/app/invoices?status=issued&dateFrom=${filters.dateFrom}&dateTo=${filters.dateTo}&customerId=${filters.customerId}&planId=${filters.planId}` },
+              { label: 'MRR (current)', value: formatMoney(data.summary.mrr), hint: `ARR ${formatMoney(data.summary.arr)}`, to: `/app/subscriptions?status=active&customerId=${filters.customerId}&planId=${filters.planId}` },
+              { label: 'Overdue (today)', value: formatMoney(data.summary.overdueBalance), hint: `${data.summary.overdueCount} invoices`, to: `/app/invoices?status=overdue&customerId=${filters.customerId}&planId=${filters.planId}` },
+            ]}
+          />
+          <div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4 border-y border-primary/10 py-5 lg:grid-cols-4">
+            {[
+              { label: 'Active subscriptions', value: data.summary.activeSubscriptions, hint: `${data.summary.pausedSubscriptions} paused`, to: `/app/subscriptions?status=active&customerId=${filters.customerId}&planId=${filters.planId}` },
+              { label: 'Outstanding balance', value: formatMoney(data.summary.outstandingBalance), hint: `${data.summary.outstandingCount} unpaid invoices`, to: `/app/invoices?status=outstanding&customerId=${filters.customerId}&planId=${filters.planId}` },
+              { label: 'Closed / cancelled', value: data.summary.cancelledSubscriptions, hint: 'in period', to: `/app/subscriptions?status=closed,cancelled&closedFrom=${filters.dateFrom}&closedTo=${filters.dateTo}&customerId=${filters.customerId}&planId=${filters.planId}` },
+              { label: 'Renewals due', value: data.summary.upcomingRenewals, hint: 'next 30 days', to: `/app/subscriptions?renewalsDue=true&customerId=${filters.customerId}&planId=${filters.planId}` },
+            ].map(({ label, value, hint, to }) => (
+              <Link key={label} to={to} className="group min-w-0 rounded-control focus-visible:outline-2 focus-visible:outline-accent-dark">
+                <p className="text-xs text-muted">{label}</p>
+                <p className="mt-1 text-lg font-semibold tracking-[-0.025em] text-ink tabular-nums">{value}</p>
+                <p className="text-xs text-muted">{hint}</p><span className="mt-2 block text-xs font-medium text-accent-dark group-hover:underline">View details →</span>
+              </Link>
+            ))}
           </div>
 
           <Card className="mt-6">
@@ -142,7 +158,7 @@ export function ReportsPage() {
               />
             </Card>
             <Card>
-              <CardHeader title="Recurring revenue by plan" />
+              <div id="recurring-revenue" className="scroll-mt-24"><CardHeader title="Recurring revenue by plan" /></div>
               <DataTable
                 columns={[
                   { key: 'plan', header: 'Plan', render: (r) => `${r.planName} ${perInterval(r.billingInterval)}` },

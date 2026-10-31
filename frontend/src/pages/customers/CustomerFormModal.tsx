@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { api, errorMessage } from '../../api/client'
 import { useAuth } from '../../auth/useAuth'
-import { Alert, Button, Checkbox, Input, Modal, Textarea, useToast } from '../../components/ui'
+import { Alert, Button, Checkbox, Input, Modal, Select, Textarea, useToast } from '../../components/ui'
+import { useAsync } from '../../hooks/useAsync'
 import { applyServerErrors, EMAIL_PATTERN } from '../../lib/forms'
-import type { CustomerRow } from '../../types'
+import type { CustomerRow, Paged, User } from '../../types'
 
 interface CustomerForm {
   companyName: string
@@ -13,6 +14,7 @@ interface CustomerForm {
   phone: string
   billingAddress: string
   taxNumber: string
+  assignedStaffId: string
   isActive: boolean
 }
 
@@ -23,6 +25,7 @@ const toForm = (c?: CustomerRow | null): CustomerForm => ({
   phone: c?.phone ?? '',
   billingAddress: c?.billingAddress ?? '',
   taxNumber: c?.taxNumber ?? '',
+  assignedStaffId: c?.assignedStaffId?.toString() ?? '',
   isActive: c?.isActive ?? true,
 })
 
@@ -39,6 +42,19 @@ export function CustomerFormModal({ open, customer, onClose, onSaved }: Props) {
 
 function CustomerFormBody({ customer, onClose, onSaved }: Omit<Props, 'open'>) {
   const { hasRole } = useAuth()
+  const isAdmin = hasRole('admin')
+  const loadStaff = useCallback(async () => {
+    if (!isAdmin) return []
+    const members: User[] = []
+    let page = 1
+    while (true) {
+      const { data } = await api.get<Paged<User>>('/users', { params: { role: 'staff', pageSize: 100, page } })
+      members.push(...data.data)
+      if (page >= data.totalPages) return members
+      page += 1
+    }
+  }, [isAdmin])
+  const staff = useAsync(loadStaff)
   const toast = useToast()
   const [error, setError] = useState<string | null>(null)
   const {
@@ -51,7 +67,9 @@ function CustomerFormBody({ customer, onClose, onSaved }: Omit<Props, 'open'>) {
   const onSubmit = handleSubmit(async (values) => {
     setError(null)
     try {
-      const { data } = customer ? await api.put<CustomerRow>(`/customers/${customer.id}`, values) : await api.post<CustomerRow>('/customers', values)
+      const { assignedStaffId, ...details } = values
+      const body = isAdmin ? { ...details, assignedStaffId: assignedStaffId ? Number(assignedStaffId) : null } : details
+      const { data } = customer ? await api.put<CustomerRow>(`/customers/${customer.id}`, body) : await api.post<CustomerRow>('/customers', body)
       toast.success(customer ? 'Customer updated' : `${data.companyName} added`)
       onSaved(data)
       onClose()
@@ -86,6 +104,11 @@ function CustomerFormBody({ customer, onClose, onSaved }: Omit<Props, 'open'>) {
           <Input label="Phone" type="tel" error={errors.phone?.message} {...register('phone')} />
           <Input label="GST / tax number" error={errors.taxNumber?.message} {...register('taxNumber')} />
         </div>
+        {isAdmin && <>
+          <Select label="Assigned staff" placeholder="Unassigned" disabled={staff.loading || !!staff.error} error={staff.error ?? errors.assignedStaffId?.message}
+            hint="Staff can only access customer accounts assigned to them." options={staff.data?.map((u) => ({ value: u.id, label: u.fullName })) ?? []} {...register('assignedStaffId')} />
+          {staff.error && <Button variant="secondary" size="sm" onClick={staff.reload}>Retry staff list</Button>}
+        </>}
         <Textarea label="Billing address" rows={3} error={errors.billingAddress?.message} {...register('billingAddress')} />
         {customer && hasRole('admin') && <Checkbox label="Active" hint="Inactive customers cannot get new subscriptions or log in to the portal." {...register('isActive')} />}
       </form>

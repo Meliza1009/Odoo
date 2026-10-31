@@ -14,9 +14,9 @@ const variants: Record<Variant, string> = {
 }
 
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[13px] gap-1.5',
-  md: 'h-9 px-3.5 text-sm gap-2',
-  lg: 'h-11 px-5 text-[15px] gap-2',
+  sm: 'min-h-9 px-3 text-[13px] gap-1.5',
+  md: 'min-h-10 px-4 text-sm gap-2',
+  lg: 'min-h-12 px-5 text-[15px] gap-2',
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -41,7 +41,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled || loading}
-      className={`inline-flex select-none items-center justify-center whitespace-nowrap rounded-control font-medium transition duration-200 ease-soft active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0 ${variants[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex select-none items-center justify-center whitespace-nowrap rounded-control font-semibold tracking-[-0.01em] transition duration-200 ease-soft active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0 ${variants[variant]} ${sizes[size]} ${className}`}
       {...props}
     >
       {loading ? <Spinner className="h-4 w-4" /> : icon}

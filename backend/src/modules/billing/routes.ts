@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../../db/pool.js';
+import { assertCustomerAccess } from '../../lib/customer-access.js';
 import { todayIso } from '../../lib/dates.js';
 import { badRequest, conflict } from '../../lib/errors.js';
 import { dateSchema, idParamSchema, paged, paginate, paginationSchema } from '../../lib/validation.js';
-import { authenticate, currentUser, requireInternal } from '../../middleware/auth.js';
+import { authenticate, currentUser, requireAdmin, requireInternal } from '../../middleware/auth.js';
 import { billSubscription, runBilling } from './engine.js';
 
 const runInput = z
@@ -18,14 +19,14 @@ export const billingRouter = Router();
 billingRouter.use(authenticate, requireInternal);
 
 /** Billing day: generate invoices for every subscription that is due. */
-billingRouter.post('/run', async (req, res) => {
+billingRouter.post('/run', requireAdmin, async (req, res) => {
   const input = runInput.parse(req.body ?? {});
   const runDate = input.runDate ?? todayIso();
   if (runDate > todayIso()) throw badRequest('Billing cannot be run for a future date');
   res.status(201).json(await runBilling(runDate, { autoConfirm: input.autoConfirm, actorId: currentUser(req).id }));
 });
 
-billingRouter.get('/runs', async (req, res) => {
+billingRouter.get('/runs', requireAdmin, async (req, res) => {
   const q = paginationSchema.parse(req.query);
   const { limit, offset } = paginate(q);
   const [{ rows }, count] = await Promise.all([
@@ -45,11 +46,12 @@ billingRouter.get('/runs', async (req, res) => {
 billingRouter.post('/subscriptions/:id/generate', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   const { autoConfirm } = runInput.parse(req.body ?? {});
-  const { rows } = await query<{ status: string; nextBillingDate: string | null }>(
-    'SELECT status, next_billing_date AS "nextBillingDate" FROM subscriptions WHERE id = $1',
+  const { rows } = await query<{ status: string; customerId: number; nextBillingDate: string | null }>(
+    'SELECT status, customer_id AS "customerId", next_billing_date AS "nextBillingDate" FROM subscriptions WHERE id = $1',
     [id],
   );
   if (!rows[0]) throw badRequest('Subscription not found');
+  await assertCustomerAccess(rows[0].customerId, currentUser(req));
   if (rows[0].status !== 'active') throw conflict(`Only active subscriptions can be invoiced (this one is ${rows[0].status})`);
   if (!rows[0].nextBillingDate || rows[0].nextBillingDate > todayIso()) {
     throw conflict(rows[0].nextBillingDate ? `Nothing is due yet. The next billing date is ${rows[0].nextBillingDate}.` : 'This subscription has no further billing periods');

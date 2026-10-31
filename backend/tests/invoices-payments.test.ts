@@ -3,7 +3,7 @@ import { pool } from '../src/db/pool.js';
 import { addDays, todayIso } from '../src/lib/dates.js';
 import { outbox } from '../src/lib/mailer.js';
 import { runBilling } from '../src/modules/billing/engine.js';
-import { api, closeDatabase, createActiveSubscription, createUser, resetDatabase, type TestUser } from './helpers.js';
+import { assignCustomers, api, closeDatabase, createActiveSubscription, createUser, resetDatabase, type TestUser } from './helpers.js';
 
 let admin: TestUser;
 let staff: TestUser;
@@ -36,6 +36,7 @@ beforeAll(async () => {
     createUser('customer', { companyName: 'Green Leaf Store' }),
     createUser('customer', { companyName: 'Northwind Traders' }),
   ]);
+  await assignCustomers(staff, customer.customerId!, otherCustomer.customerId!);
   productId = (await api().post('/api/products').set(admin.auth).send({ name: 'Analytics Add-on', type: 'addon', salesPrice: 1000 })).body.id;
   planId = (await api().post('/api/plans').set(admin.auth).send({ name: 'Monthly', billingInterval: 'monthly', price: 0 })).body.id;
   await api().post('/api/tax-rules').set(admin.auth).send({ name: 'GST', rate: 18 });

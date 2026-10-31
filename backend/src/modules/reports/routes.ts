@@ -4,7 +4,8 @@ import { query } from '../../db/pool.js';
 import { addDays, todayIso } from '../../lib/dates.js';
 import { badRequest } from '../../lib/errors.js';
 import { dateSchema, idSchema, paged, paginate, paginationSchema } from '../../lib/validation.js';
-import { authenticate, requireInternal } from '../../middleware/auth.js';
+import { customerScope } from '../../lib/customer-access.js';
+import { authenticate, currentUser, requireAdmin, requireInternal } from '../../middleware/auth.js';
 import { PAYMENT_METHODS } from '../invoices/schemas.js';
 import { INVOICE_COLUMNS, OVERDUE_SQL } from '../invoices/service.js';
 import { SUBSCRIPTION_STATUSES } from '../subscriptions/schemas.js';
@@ -58,6 +59,26 @@ const round2 = (n: number) => Math.round(Number(n) * 100) / 100;
 
 export const reportsRouter = Router();
 reportsRouter.use(authenticate, requireInternal);
+
+/** Staff operational dashboard: counts only within their assigned customer portfolio. */
+reportsRouter.get('/workspace', async (req, res) => {
+  const user = currentUser(req);
+  const params: unknown[] = [todayIso()];
+  const scopeSql = customerScope(user, 'c.id', params);
+  const { rows } = await query(
+    `WITH scoped_customers AS (SELECT c.id FROM customers c WHERE ${scopeSql})
+     SELECT (SELECT count(*)::int FROM scoped_customers sc JOIN customers active_c ON active_c.id = sc.id WHERE active_c.is_active) AS "assignedCustomers",
+       (SELECT count(*)::int FROM subscriptions s JOIN scoped_customers c ON c.id = s.customer_id WHERE s.status = 'active') AS "activeSubscriptions",
+       (SELECT count(*)::int FROM subscriptions s JOIN scoped_customers c ON c.id = s.customer_id WHERE s.status IN ('draft', 'quotation')) AS "openQuotations",
+       (SELECT count(*)::int FROM subscriptions s JOIN scoped_customers c ON c.id = s.customer_id WHERE s.status IN ('active', 'paused') AND s.expiry_date BETWEEN $1::date AND $1::date + 30) AS "upcomingRenewals",
+       (SELECT count(*)::int FROM invoices i JOIN scoped_customers c ON c.id = i.customer_id WHERE ${OVERDUE_SQL}) AS "overdueInvoices"`,
+    params,
+  );
+  res.json(rows[0]);
+});
+
+// Company-wide finance and analytics are restricted to administrators.
+reportsRouter.use(requireAdmin);
 
 /** One-glance finance summary: subscriptions, MRR/ARR, revenue collected, outstanding and overdue balances. */
 reportsRouter.get('/summary', async (req, res) => {

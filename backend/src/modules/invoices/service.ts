@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { pool, query, withTransaction, type DbClient } from '../../db/pool.js';
+import { assertCustomerAccess, customerScope } from '../../lib/customer-access.js';
 import { logAudit } from '../../lib/audit.js';
 import { todayIso } from '../../lib/dates.js';
 import { badRequest, conflict, notFound } from '../../lib/errors.js';
@@ -87,14 +88,15 @@ export async function listInvoices(user: AuthUser, q: z.infer<typeof listInvoice
     where.push(sql.replaceAll('?', `$${params.length}`));
   };
 
+  where.push(customerScope(user, 'i.customer_id', params));
   if (!isInternal(user)) {
-    add('i.customer_id = ?', user.customerId ?? -1);
     where.push(`i.status <> 'draft'`);
   } else if (q.customerId) {
     add('i.customer_id = ?', q.customerId);
   }
   if (q.status === 'overdue') where.push(OVERDUE_SQL);
   else if (q.status === 'outstanding') where.push(`i.status = 'confirmed' AND i.amount_due > 0`);
+  else if (q.status === 'issued') where.push(`i.status IN ('confirmed', 'paid')`);
   else if (q.status) add('i.status = ?', q.status);
   if (q.subscriptionId) add('i.subscription_id = ?', q.subscriptionId);
   if (q.planId) add('s.plan_id = ?', q.planId);
@@ -123,14 +125,17 @@ async function findInvoice(id: number, client: DbClient = pool, lock = false) {
   return rows[0];
 }
 
-function assertCanView(user: AuthUser, invoice: InvoiceRow) {
-  if (isInternal(user)) return;
+async function assertCanView(user: AuthUser, invoice: InvoiceRow, client: DbClient = pool) {
+  if (isInternal(user)) {
+    await assertCustomerAccess(invoice.customerId, user, client);
+    return;
+  }
   if (invoice.customerId !== user.customerId || invoice.status === 'draft') throw notFound('Invoice not found');
 }
 
 export async function getInvoice(id: number, user: AuthUser, client: DbClient = pool) {
   const invoice = await findInvoice(id, client);
-  assertCanView(user, invoice);
+  await assertCanView(user, invoice, client);
   const lines = await query<InvoiceLineRow>(
     `SELECT id, line_type AS "lineType", product_id AS "productId", variant_id AS "variantId", description, quantity,
             unit_price AS "unitPrice", subtotal, discount_amount AS "discountAmount", tax_rate AS "taxRate", tax_amount AS "taxAmount", total
@@ -162,6 +167,7 @@ export async function listInvoicePayments(invoiceId: number, client: DbClient = 
 export async function confirmInvoice(id: number, actor: AuthUser) {
   return withTransaction(async (client) => {
     const invoice = await findInvoice(id, client, true);
+    await assertCanView(actor, invoice, client);
     if (invoice.status !== 'draft') throw conflict(`Only draft invoices can be confirmed (this one is ${invoice.status})`);
     // A fully discounted invoice has nothing to collect, so it is settled immediately.
     const status = invoice.grandTotal === 0 ? 'paid' : 'confirmed';
@@ -178,6 +184,7 @@ export async function confirmInvoice(id: number, actor: AuthUser) {
 export async function cancelInvoice(id: number, actor: AuthUser, reason: string | null) {
   return withTransaction(async (client) => {
     const invoice = await findInvoice(id, client, true);
+    await assertCanView(actor, invoice, client);
     if (!['draft', 'confirmed'].includes(invoice.status)) throw conflict(`A ${invoice.status} invoice cannot be cancelled`);
     if (invoice.amountPaid > 0) throw conflict('This invoice has payments recorded against it and cannot be cancelled');
     await client.query(`UPDATE invoices SET status = 'cancelled', cancelled_at = now(), updated_at = now() WHERE id = $1`, [id]);
@@ -218,6 +225,7 @@ export async function sendInvoice(id: number, actor: AuthUser) {
 export async function recordPayment(invoiceId: number, input: z.infer<typeof paymentInput>, actor: AuthUser) {
   return withTransaction(async (client) => {
     const invoice = await findInvoice(invoiceId, client, true);
+    await assertCanView(actor, invoice, client);
     if (invoice.status === 'draft') throw conflict('Confirm the invoice before recording a payment');
     if (invoice.status === 'cancelled') throw conflict('Payments cannot be recorded on a cancelled invoice');
     if (invoice.status === 'paid') throw conflict('This invoice is already fully paid');

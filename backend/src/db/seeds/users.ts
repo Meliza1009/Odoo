@@ -28,15 +28,16 @@ export async function seedUsers(client: pg.PoolClient) {
   };
 
   for (const u of DEMO_USERS) await upsertUser(u.email, u.fullName, u.role);
+  const demoStaff = await client.query<{id: number}>("SELECT id FROM users WHERE email = 'staff@brightloop.demo' AND role = 'staff' AND is_active");
 
   for (const c of DEMO_CUSTOMERS) {
     const userId = await upsertUser(c.email, c.fullName, 'customer');
     const existing = await client.query('SELECT 1 FROM customers WHERE user_id = $1 OR lower(company_name) = lower($2)', [userId, c.companyName]);
     if (existing.rowCount) continue;
     await client.query(
-      `INSERT INTO customers (user_id, company_name, contact_name, email, phone, billing_address, tax_number)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [userId, c.companyName, c.fullName, c.email, c.phone, c.billingAddress, c.taxNumber],
+      `INSERT INTO customers (user_id, company_name, contact_name, email, phone, billing_address, tax_number, assigned_staff_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [userId, c.companyName, c.fullName, c.email, c.phone, c.billingAddress, c.taxNumber, demoStaff.rows[0]?.id ?? null],
     );
   }
 }

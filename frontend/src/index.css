@@ -14,8 +14,10 @@
   --color-accent: #14a693;
   --color-accent-dark: #0d8274;
   --color-accent-soft: #e7f6f3;
-  --color-background: #f5f6f8;
+  --color-background: #f3f5f4;
   --color-surface: #ffffff;
+  --color-canvas: #e9efeb;
+  --color-wash: #dceee8;
   --color-success: #15803d;
   --color-warning: #b45309;
   --color-danger: #c2410c;
@@ -29,7 +31,7 @@
   --radius-control: 0.625rem;
 
   --shadow-xs: 0 1px 2px rgb(14 23 38 / 0.05);
-  --shadow-card: 0 1px 2px rgb(14 23 38 / 0.04), 0 12px 32px -16px rgb(14 23 38 / 0.1);
+  --shadow-card: 0 2px 4px rgb(14 23 38 / 0.025), 0 20px 45px -28px rgb(14 23 38 / 0.2);
   --shadow-pop: 0 2px 6px rgb(14 23 38 / 0.06), 0 24px 56px -20px rgb(14 23 38 / 0.28);
 
   --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
@@ -71,6 +73,9 @@
     @apply bg-background font-sans text-ink antialiased;
     font-feature-settings: "ss01", "cv11";
   }
+  button, input, select, textarea {
+    font: inherit;
+  }
   h1, h2, h3 {
     text-wrap: balance;
   }
@@ -107,6 +112,16 @@
   }
   .mask-fade-left {
     mask-image: radial-gradient(ellipse 65% 75% at 12% 55%, #000 25%, transparent 75%);
+  }
+  .loop-field {
+    background-image:
+      radial-gradient(circle at 100% 0%, rgb(20 166 147 / 0.28), transparent 42%),
+      repeating-radial-gradient(circle at 110% 16%, transparent 0 80px, rgb(255 255 255 / 0.09) 81px 82px, transparent 83px 128px);
+  }
+  .paper-field {
+    background-image:
+      radial-gradient(ellipse 55% 55% at 90% 0%, rgb(20 166 147 / 0.12), transparent 75%),
+      linear-gradient(155deg, #f9faf7, #edf2ee);
   }
 
   /* Paper-like grain: a single fixed, non-interactive layer, so it never repaints while scrolling. */

@@ -14,13 +14,14 @@ export function PaymentsPage({ portal = false }: { portal?: boolean }) {
   const navigate = useNavigate()
   const toast = useToast()
   const [params] = useSearchParams()
-  const [method, setMethod] = useState('')
+  const [method, setMethod] = useState(params.get('paymentMethod') ?? '')
+  const [planId, setPlanId] = useState(params.get('planId') ?? '')
   const [customerId, setCustomerId] = useState(params.get('customerId') ?? '')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateFrom, setDateFrom] = useState(params.get('dateFrom') ?? '')
+  const [dateTo, setDateTo] = useState(params.get('dateTo') ?? '')
   const [choices, setChoices] = useState<InvoiceRow[] | null>(null)
   const lookups = useLookups(!portal)
-  const list = usePagedList<Payment, PagedWithSummary<Payment, { amount: number }>>('/payments', { paymentMethod: method, customerId: portal ? '' : customerId, dateFrom, dateTo })
+  const list = usePagedList<Payment, PagedWithSummary<Payment, { amount: number }>>('/payments', { paymentMethod: method, planId: portal ? '' : planId, customerId: portal ? '' : customerId, dateFrom, dateTo })
   const base = portal ? '/portal' : '/app'
 
   const openRecord = async () => {
@@ -65,6 +66,7 @@ export function PaymentsPage({ portal = false }: { portal?: boolean }) {
             {!portal && (
               <Select aria-label="Customer" className="w-48" value={customerId} onChange={(e) => setCustomerId(e.target.value)} options={lookups.data?.customers.map((c) => ({ value: c.id, label: c.companyName })) ?? []} placeholder="All customers" />
             )}
+            {!portal && <Select aria-label="Plan" className="w-44" value={planId} onChange={(e) => setPlanId(e.target.value)} options={lookups.data?.plans.map((p) => ({ value: p.id, label: p.name })) ?? []} placeholder="All plans" />}
             <Input aria-label="Paid from" type="date" className="w-40" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             <span className="text-sm text-slate-400">to</span>
             <Input aria-label="Paid to" type="date" className="w-40" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />

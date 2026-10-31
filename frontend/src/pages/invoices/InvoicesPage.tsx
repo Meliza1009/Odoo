@@ -1,6 +1,7 @@
 import { ReceiptIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth'
 import { RunBillingDialog } from '../../components/RunBillingDialog'
 import { ListCard } from '../../components/ListCard'
 import { Button, Input, PageHeader, Segmented, Select, StatusBadge, type Column } from '../../components/ui'
@@ -12,6 +13,7 @@ import type { InvoiceRow, PagedWithSummary } from '../../types'
 const STATUSES = [
   { value: '', label: 'All' },
   { value: 'draft', label: 'Draft' },
+  { value: 'issued', label: 'Issued' },
   { value: 'outstanding', label: 'Outstanding' },
   { value: 'overdue', label: 'Overdue' },
   { value: 'paid', label: 'Paid' },
@@ -22,17 +24,21 @@ const invoiceStatus = (i: InvoiceRow) => (i.isOverdue ? 'overdue' : i.status ===
 
 export function InvoicesPage({ portal = false }: { portal?: boolean }) {
   const navigate = useNavigate()
+  const { hasRole } = useAuth()
+  const canRunBilling = !portal && hasRole('admin')
   const [params] = useSearchParams()
   const segments = portal ? STATUSES.filter((s) => s.value !== 'draft') : STATUSES
   const [status, setStatus] = useState(segments.find((s) => s.value === params.get('status'))?.value ?? '')
+  const [planId, setPlanId] = useState(params.get('planId') ?? '')
   const [customerId, setCustomerId] = useState(params.get('customerId') ?? '')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
+  const [dateFrom, setDateFrom] = useState(params.get('dateFrom') ?? '')
+  const [dateTo, setDateTo] = useState(params.get('dateTo') ?? '')
   const [billingOpen, setBillingOpen] = useState(false)
   const lookups = useLookups(!portal)
   const list = usePagedList<InvoiceRow, PagedWithSummary<InvoiceRow, { grandTotal: number; amountDue: number }>>('/invoices', {
     status,
     customerId: portal ? '' : customerId,
+    planId: portal ? '' : planId,
     dateFrom,
     dateTo,
   })
@@ -62,9 +68,9 @@ export function InvoicesPage({ portal = false }: { portal?: boolean }) {
     <>
       <PageHeader
         title={portal ? 'My invoices' : 'Invoices'}
-        description={portal ? 'Download invoices and see what is still due.' : 'Generated on billing day with taxes and discounts applied.'}
+        description={portal ? 'Download invoices and see what is still due.' : 'Outstanding is the unpaid balance on confirmed invoices. Overdue means the due date has passed.'}
         actions={
-          !portal && (
+          canRunBilling && (
             <Button variant="secondary" icon={<ReceiptIcon className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
               Run billing
             </Button>
@@ -84,6 +90,7 @@ export function InvoicesPage({ portal = false }: { portal?: boolean }) {
             {!portal && (
               <Select aria-label="Customer" className="w-48" value={customerId} onChange={(e) => setCustomerId(e.target.value)} options={lookups.data?.customers.map((c) => ({ value: c.id, label: c.companyName })) ?? []} placeholder="All customers" />
             )}
+            {!portal && <Select aria-label="Plan" className="w-44" value={planId} onChange={(e) => setPlanId(e.target.value)} options={lookups.data?.plans.map((p) => ({ value: p.id, label: p.name })) ?? []} placeholder="All plans" />}
             <Input aria-label="Invoice date from" type="date" className="w-40" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             <span className="text-sm text-slate-400">to</span>
             <Input aria-label="Invoice date to" type="date" className="w-40" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
@@ -105,7 +112,7 @@ export function InvoicesPage({ portal = false }: { portal?: boolean }) {
           ) : undefined
         }
       />
-      {!portal && <RunBillingDialog open={billingOpen} onClose={() => setBillingOpen(false)} onDone={list.reload} />}
+      {canRunBilling && <RunBillingDialog open={billingOpen} onClose={() => setBillingOpen(false)} onDone={list.reload} />}
     </>
   )
 }

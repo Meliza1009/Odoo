@@ -2,6 +2,8 @@ export type Role = 'admin' | 'staff' | 'customer'
 
 export interface Customer {
   id: number
+  assignedStaffId: number | null
+  assignedStaffName: string | null
   userId: number | null
   companyName: string
   contactName: string | null

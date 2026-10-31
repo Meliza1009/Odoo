@@ -31,9 +31,9 @@ export function ListCard<T>({ list, columns, rowKey, searchPlaceholder = 'Search
   const filtering = !!list.search.trim()
   return (
     <Card>
-      <div className="flex flex-col gap-3 border-b border-slate-900/[0.06] px-5 py-3.5 lg:flex-row lg:items-center">
-        <SearchInput className="w-full lg:max-w-xs" placeholder={searchPlaceholder} aria-label={searchPlaceholder} value={list.search} onChange={(e) => list.setSearch(e.target.value)} />
-        {filters && <div className="flex flex-wrap items-center gap-3">{filters}</div>}
+      <div className="flex flex-col gap-3 border-b border-primary/[0.07] px-5 py-4 lg:flex-row lg:items-center lg:justify-between sm:px-6">
+        <SearchInput className="w-full lg:max-w-sm" placeholder={searchPlaceholder} aria-label={searchPlaceholder} value={list.search} onChange={(e) => list.setSearch(e.target.value)} />
+        {filters && <div className="flex flex-wrap items-center gap-2.5">{filters}</div>}
       </div>
       <DataTable
         columns={columns}

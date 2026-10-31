@@ -2,7 +2,7 @@ import { FilePlusIcon, PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ListCard } from '../../components/ListCard'
-import { Button, PageHeader, Segmented, Select, StatusBadge, type Column } from '../../components/ui'
+import { Button, Input, PageHeader, Segmented, Select, StatusBadge, type Column } from '../../components/ui'
 import { useLookups } from '../../hooks/useLookups'
 import { usePagedList } from '../../hooks/usePagedList'
 import { formatDate, formatMoney, perInterval } from '../../lib/format'
@@ -24,6 +24,7 @@ const SEGMENTS = {
     { value: 'active', label: 'Active' },
     { value: 'confirmed', label: 'Confirmed' },
     { value: 'paused', label: 'Paused' },
+    { value: 'closed,cancelled', label: 'Closed / cancelled' },
     { value: 'closed', label: 'Closed' },
     { value: 'cancelled', label: 'Cancelled' },
   ],
@@ -35,10 +36,13 @@ export function SubscriptionsPage({ kind }: Props) {
   const segments = SEGMENTS[kind]
   const initial = segments.find((s) => s.value === params.get('status'))?.value ?? segments[0].value
   const [status, setStatus] = useState(initial)
-  const [planId, setPlanId] = useState('')
+  const [closedFrom, setClosedFrom] = useState(params.get('closedFrom') ?? '')
+  const [closedTo, setClosedTo] = useState(params.get('closedTo') ?? '')
+  const [planId, setPlanId] = useState(params.get('planId') ?? '')
   const [customerId, setCustomerId] = useState(params.get('customerId') ?? '')
   const lookups = useLookups()
-  const list = usePagedList<SubscriptionRow>('/subscriptions', { status, planId, customerId })
+  const renewalsDue = params.get('renewalsDue') === 'true'
+  const list = usePagedList<SubscriptionRow>('/subscriptions', { status, planId, customerId, renewalsDue, closedFrom, closedTo })
   const isQuotes = kind === 'quotations'
 
   const columns: Column<SubscriptionRow>[] = [
@@ -78,6 +82,7 @@ export function SubscriptionsPage({ kind }: Props) {
           </>
         }
       />
+      {renewalsDue && <p className="mb-4 text-sm text-accent-dark">Showing active or paused subscriptions expiring within the next 30 days. <button className="font-semibold underline" onClick={() => navigate('/app/subscriptions')}>Clear renewal filter</button></p>}
       <div className="mb-4">
         <Segmented label="Status" value={status} onChange={setStatus} options={segments} />
       </div>
@@ -88,6 +93,7 @@ export function SubscriptionsPage({ kind }: Props) {
         searchPlaceholder="Search number or customer"
         filters={
           <>
+            {(closedFrom || closedTo) && <><Input label="Closed from" type="date" value={closedFrom} onChange={(e) => setClosedFrom(e.target.value)} /><Input label="Closed to" type="date" value={closedTo} onChange={(e) => setClosedTo(e.target.value)} /><Button variant="ghost" size="sm" onClick={() => { setClosedFrom(''); setClosedTo('') }}>Clear closure dates</Button></>}
             <Select aria-label="Customer" className="w-48" value={customerId} onChange={(e) => setCustomerId(e.target.value)} options={lookups.data?.customers.map((c) => ({ value: c.id, label: c.companyName })) ?? []} placeholder="All customers" />
             <Select aria-label="Plan" className="w-44" value={planId} onChange={(e) => setPlanId(e.target.value)} options={lookups.data?.plans.map((p) => ({ value: p.id, label: p.name })) ?? []} placeholder="All plans" />
           </>

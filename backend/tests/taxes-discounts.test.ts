@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { pool } from '../src/db/pool.js';
 import { addDays, addInterval, todayIso } from '../src/lib/dates.js';
 import { runBilling } from '../src/modules/billing/engine.js';
-import { api, closeDatabase, createActiveSubscription, createUser, resetDatabase, type TestUser } from './helpers.js';
+import { assignCustomers, api, closeDatabase, createActiveSubscription, createUser, resetDatabase, type TestUser } from './helpers.js';
 
 let admin: TestUser;
 let staff: TestUser;
@@ -45,6 +45,7 @@ const createDiscount = async (body: Record<string, unknown>) => {
 beforeAll(async () => {
   await resetDatabase();
   [admin, staff, customer] = await Promise.all([createUser('admin'), createUser('staff'), createUser('customer')]);
+  await assignCustomers(staff, customer.customerId!);
   softwareId = (await api().post('/api/products').set(admin.auth).send({ name: 'Business Software', type: 'software', salesPrice: 2000 })).body.id;
   supportId = (await api().post('/api/products').set(admin.auth).send({ name: 'Support Package', type: 'service', salesPrice: 1500 })).body.id;
   planId = (await api().post('/api/plans').set(admin.auth).send({ name: 'Seats Monthly', billingInterval: 'monthly', price: 0 })).body.id;

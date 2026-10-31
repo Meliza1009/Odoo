@@ -2,7 +2,7 @@ import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type Selec
 
 const controlClass = (error?: string) =>
   `block w-full rounded-control bg-surface px-3 text-sm text-ink shadow-xs ring-1 ring-inset transition duration-200 ease-soft placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500 read-only:bg-slate-50 ${
-    error ? 'ring-danger/60 focus:ring-danger/50' : 'ring-slate-900/10 hover:ring-slate-900/20 focus:ring-accent/50'
+    error ? 'ring-danger/60 focus:ring-danger/50' : 'ring-primary/15 hover:ring-primary/25 focus:ring-accent-dark/60'
   }`
 
 interface WrapperProps {
@@ -55,7 +55,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ l
         id={inputId}
         aria-invalid={!!error}
         aria-describedby={error ? `${inputId}-error` : undefined}
-        className={`h-9 ${controlClass(error)} ${className}`}
+        className={`min-h-10 ${controlClass(error)} ${className}`}
         {...props}
       />
     </FieldWrapper>
@@ -82,7 +82,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         ref={ref}
         id={selectId}
         aria-invalid={!!error}
-        className={`h-9 appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%235b6474'%20stroke-width='1.5'%3E%3Cpath%20d='M4%206l4%204%204-4'/%3E%3C/svg%3E")] bg-[length:14px] bg-[right_0.6rem_center] bg-no-repeat pr-8 ${controlClass(error)} ${className}`}
+        className={`min-h-10 appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%235b6474'%20stroke-width='1.5'%3E%3Cpath%20d='M4%206l4%204%204-4'/%3E%3C/svg%3E")] bg-[length:14px] bg-[right_0.6rem_center] bg-no-repeat pr-8 ${controlClass(error)} ${className}`}
         {...props}
       >
         {placeholder !== undefined && <option value="">{placeholder}</option>}

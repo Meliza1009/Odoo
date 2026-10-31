@@ -138,7 +138,8 @@ function ScratchForm({ lookups, existing }: { lookups: Lookups; existing: Subscr
   return (
     <form onSubmit={submit(primaryStatus)} noValidate className="space-y-6">
       {error && <Alert tone="error">{error}</Alert>}
-      <Card className="p-5">
+      <Card className="p-5 sm:p-6">
+        <h2 className="mb-5 border-b border-primary/10 pb-4 text-lg font-semibold tracking-[-0.025em] text-ink">Customer &amp; plan</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Select label="Customer" required options={customerOptions} placeholder="Choose a customer" error={errors.customerId?.message} {...register('customerId', { required: 'Choose a customer' })} />
           <Select
@@ -172,9 +173,9 @@ function ScratchForm({ lookups, existing }: { lookups: Lookups; existing: Subscr
 
       <Card>
         <CardHeader title="Product lines" />
-        <div className="p-5">
+        <div className="p-5 sm:p-6">
           <LineItemsEditor products={lookups.products} lines={lines} onChange={setLines} />
-          <div className="mt-6 border-t border-slate-200 pt-4">
+          <div className="mt-6 border-t border-primary/10 pt-5">
             <Totals
               rows={[
                 ...(planFee > 0 ? [{ label: `${plan?.name} plan fee`, value: formatMoney(planFee) }] : []),

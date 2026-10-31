@@ -10,7 +10,7 @@ let staff: TestUser;
 /** Loads thousands of subscriptions, invoices and payments directly with SQL, then times the dashboard endpoints. */
 beforeAll(async () => {
   await resetDatabase();
-  staff = await createUser('staff');
+  staff = await createUser('admin');
   const customers = await Promise.all(Array.from({ length: 50 }, (_, i) => createCustomer(`Bulk Customer ${i + 1}`)));
   const plan = await pool.query<{ id: number }>(`INSERT INTO plans (name, billing_interval, price) VALUES ('Bulk Monthly', 'monthly', 999) RETURNING id`);
 

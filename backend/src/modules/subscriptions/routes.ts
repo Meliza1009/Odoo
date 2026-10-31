@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { query } from '../../db/pool.js';
+import { customerScope } from '../../lib/customer-access.js';
 import { idParamSchema } from '../../lib/validation.js';
-import { authenticate, currentUser, requireInternal } from '../../middleware/auth.js';
+import { authenticate, currentUser, requireAdmin, requireInternal } from '../../middleware/auth.js';
 import {
   createSubscriptionInput,
   fromTemplateInput,
@@ -26,9 +27,11 @@ export const subscriptionsRouter = Router();
 subscriptionsRouter.use(authenticate);
 
 /** Dropdown data for the quotation/subscription forms. */
-subscriptionsRouter.get('/lookups', requireInternal, async (_req, res) => {
+subscriptionsRouter.get('/lookups', requireInternal, async (req, res) => {
+  const params: unknown[] = [];
+  const scope = customerScope(currentUser(req), 'c.id', params);
   const [customers, plans, products, variants, templates] = await Promise.all([
-    query(`SELECT id, company_name AS "companyName" FROM customers WHERE is_active ORDER BY company_name LIMIT 1000`),
+    query(`SELECT c.id, c.company_name AS "companyName" FROM customers c WHERE c.is_active AND ${scope} ORDER BY c.company_name LIMIT 1000`, params),
     query(
       `SELECT id, name, billing_interval AS "billingInterval", price, min_quantity AS "minQuantity",
               start_date AS "startDate", end_date AS "endDate"
@@ -50,7 +53,7 @@ subscriptionsRouter.get('/lookups', requireInternal, async (_req, res) => {
   });
 });
 
-subscriptionsRouter.post('/close-expired', requireInternal, async (req, res) => {
+subscriptionsRouter.post('/close-expired', requireAdmin, async (req, res) => {
   const closed = await closeExpiredSubscriptions(undefined, currentUser(req).id);
   res.json({ closed: closed.length, subscriptions: closed });
 });

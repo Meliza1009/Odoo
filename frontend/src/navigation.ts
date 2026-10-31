@@ -17,7 +17,7 @@ const adminOnly: Role[] = ['admin']
 /** Sidebar for admin/staff, grouped by section (order here is the order shown). */
 export const appNav: NavItem[] = [
   { to: '/app', label: 'Dashboard', icon: SquaresFourIcon, roles: internal, end: true, section: 'Overview' },
-  { to: '/app/reports', label: 'Reports', icon: ChartBarIcon, roles: internal, section: 'Overview' },
+  { to: '/app/reports', label: 'Reports', icon: ChartBarIcon, roles: adminOnly, section: 'Overview' },
   { to: '/app/customers', label: 'Customers', icon: UsersThreeIcon, roles: internal, section: 'Sales' },
   { to: '/app/quotations', label: 'Quotations', icon: FileTextIcon, roles: internal, section: 'Sales' },
   { to: '/app/subscriptions', label: 'Subscriptions', icon: ArrowsClockwiseIcon, roles: internal, section: 'Sales' },
@@ -34,7 +34,9 @@ export const appNav: NavItem[] = [
 /** Top navigation for customers. */
 export const portalNav: NavItem[] = [
   { to: '/portal', label: 'Dashboard', icon: SquaresFourIcon, roles: ['customer'], end: true },
-  { to: '/portal/subscriptions', label: 'Subscriptions', icon: ArrowsClockwiseIcon, roles: ['customer'] },
+  { to: '/portal/catalog', label: 'Plans & products', icon: PackageIcon, roles: ['customer'] },
+  { to: '/portal/discounts', label: 'My discounts', icon: SealPercentIcon, roles: ['customer'] },
+  { to: '/portal/subscriptions', label: 'My subscriptions', icon: ArrowsClockwiseIcon, roles: ['customer'] },
   { to: '/portal/invoices', label: 'Invoices', icon: ReceiptIcon, roles: ['customer'] },
   { to: '/portal/payments', label: 'Payments', icon: CreditCardIcon, roles: ['customer'] },
   { to: '/portal/profile', label: 'Profile', icon: UserCircleIcon, roles: ['customer'] },

@@ -55,10 +55,15 @@ export async function createActiveSubscription(staff: TestUser, body: Record<str
   return created.body.id;
 }
 
-export async function createCustomer(companyName: string, userId: number | null = null): Promise<number> {
+export async function createCustomer(companyName: string, userId: number | null = null, assignedStaffId: number | null = null): Promise<number> {
   const { rows } = await pool.query<{ id: number }>(
-    `INSERT INTO customers (user_id, company_name, contact_name) VALUES ($1, $2, $2) RETURNING id`,
-    [userId, companyName],
+    `INSERT INTO customers (user_id, company_name, contact_name, assigned_staff_id) VALUES ($1, $2, $2, $3) RETURNING id`,
+    [userId, companyName, assignedStaffId],
   );
   return rows[0].id;
+}
+
+/** Explicit fixture ownership; tests must opt into the staff portfolio they exercise. */
+export async function assignCustomers(staff: TestUser, ...customerIds: number[]) {
+  await pool.query('UPDATE customers SET assigned_staff_id = $1 WHERE id = ANY($2::int[])', [staff.id, customerIds]);
 }

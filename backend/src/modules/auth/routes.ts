@@ -107,7 +107,9 @@ authRouter.post('/register', async (req, res) => {
 authRouter.post('/login', loginLimiter, async (req, res) => {
   const input = loginInput.parse(req.body);
   const { rows } = await query<Credentials>(
-    `SELECT id, role, password_hash AS "passwordHash", is_active AS "isActive" FROM users WHERE email = $1`,
+    `SELECT u.id, u.role, u.password_hash AS "passwordHash",
+            (u.is_active AND COALESCE(c.is_active, TRUE)) AS "isActive"
+       FROM users u LEFT JOIN customers c ON c.user_id = u.id WHERE u.email = $1`,
     [input.email],
   );
   const user = rows[0];

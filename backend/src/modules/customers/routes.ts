@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool, query, withTransaction, type DbClient } from '../../db/pool.js';
 import { logAudit } from '../../lib/audit.js';
+import { assertCustomerAccess, customerScope } from '../../lib/customer-access.js';
 import { todayIso } from '../../lib/dates.js';
-import { conflict, notFound } from '../../lib/errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import { booleanQuery, emailSchema, idParamSchema, nameSchema, optionalText, paged, paginate, paginationSchema, passwordSchema } from '../../lib/validation.js';
 import { authenticate, currentUser, requireAdmin, requireInternal } from '../../middleware/auth.js';
 import { CUSTOMER_COLUMNS, hashPassword, type CustomerProfile } from '../auth/service.js';
@@ -19,6 +20,7 @@ const customerInput = z.object({
   billingAddress: optionalText(500),
   taxNumber: optionalText(60),
   isActive: z.boolean().default(true),
+  assignedStaffId: z.number().int().positive().nullable().optional(),
 });
 
 const portalAccessInput = z.object({
@@ -31,11 +33,13 @@ const listQuery = paginationSchema.extend({ includeInactive: booleanQuery });
 
 export interface CustomerRow extends CustomerProfile {
   userEmail: string | null;
+  assignedStaffName: string | null;
   activeSubscriptions: number;
   outstandingBalance: number;
 }
 
 const LIST_COLUMNS = `${CUSTOMER_COLUMNS}, u.email AS "userEmail",
+  (SELECT full_name FROM users assigned WHERE assigned.id = c.assigned_staff_id) AS "assignedStaffName",
   (SELECT count(*) FROM subscriptions s WHERE s.customer_id = c.id AND s.status = 'active')::int AS "activeSubscriptions",
   COALESCE((SELECT sum(i.amount_due) FROM invoices i WHERE i.customer_id = c.id AND i.status = 'confirmed'), 0) AS "outstandingBalance"`;
 
@@ -49,6 +53,12 @@ async function getCustomer(id: number, client: DbClient = pool): Promise<Custome
 
 const values = (c: z.infer<typeof customerInput>) => [c.companyName, c.contactName, c.email, c.phone, c.billingAddress, c.taxNumber, c.isActive];
 
+async function validateAssignment(id: number | null | undefined) {
+  if (id == null) return;
+  const { rows } = await query("SELECT id FROM users WHERE id = $1 AND role = 'staff' AND is_active", [id]);
+  if (!rows[0]) throw badRequest('Assign an active staff member');
+}
+
 export const customersRouter = Router();
 customersRouter.use(authenticate, requireInternal);
 
@@ -56,6 +66,7 @@ customersRouter.get('/', async (req, res) => {
   const q = listQuery.parse(req.query);
   const where: string[] = [];
   const params: unknown[] = [];
+  where.push(customerScope(currentUser(req), 'c.id', params));
   if (!q.includeInactive) where.push('c.is_active');
   if (q.q) {
     params.push(`%${q.q}%`);
@@ -73,6 +84,7 @@ customersRouter.get('/', async (req, res) => {
 /** Customer record plus the figures staff need when talking to them: subscriptions, invoices and balances. */
 customersRouter.get('/:id', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
+  await assertCustomerAccess(id, currentUser(req));
   const customer = await getCustomer(id);
   const [subscriptions, invoices] = await Promise.all([
     query(
@@ -94,12 +106,13 @@ customersRouter.get('/:id', async (req, res) => {
   res.json({ ...customer, subscriptions: subscriptions.rows, stats: invoices.rows[0] });
 });
 
-customersRouter.post('/', async (req, res) => {
+customersRouter.post('/', requireAdmin, async (req, res) => {
   const input = customerInput.parse(req.body);
+  await validateAssignment(input.assignedStaffId);
   const { rows } = await query<{ id: number }>(
-    `INSERT INTO customers (company_name, contact_name, email, phone, billing_address, tax_number, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-    values(input),
+    `INSERT INTO customers (company_name, contact_name, email, phone, billing_address, tax_number, is_active, assigned_staff_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+    [...values(input), input.assignedStaffId ?? null],
   );
   await logAudit(currentUser(req).id, 'customer.created', 'customer', rows[0].id, { companyName: input.companyName });
   res.status(201).json(await getCustomer(rows[0].id));
@@ -108,15 +121,24 @@ customersRouter.post('/', async (req, res) => {
 customersRouter.put('/:id', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   const input = customerInput.parse(req.body);
+  await assertCustomerAccess(id, currentUser(req));
   const current = await getCustomer(id);
+  if (currentUser(req).role === 'staff' && input.assignedStaffId !== undefined && input.assignedStaffId !== current.assignedStaffId) throw forbidden('Only admins can assign customers');
+  const assignedStaffId = currentUser(req).role === 'admin' ? (input.assignedStaffId === undefined ? current.assignedStaffId : input.assignedStaffId) : current.assignedStaffId;
+  if (currentUser(req).role === 'admin') await validateAssignment(assignedStaffId);
   // Only admins may deactivate or reactivate accounts; staff edits keep the current flag.
   const isActive = currentUser(req).role === 'admin' ? input.isActive : current.isActive;
-  await query(
-    `UPDATE customers SET company_name = $2, contact_name = $3, email = $4, phone = $5, billing_address = $6, tax_number = $7,
-            is_active = $8, updated_at = now() WHERE id = $1`,
-    [id, ...values({ ...input, isActive })],
-  );
-  await logAudit(currentUser(req).id, 'customer.updated', 'customer', id, { companyName: input.companyName });
+  await withTransaction(async (client) => {
+    await client.query(
+      `UPDATE customers SET company_name = $2, contact_name = $3, email = $4, phone = $5, billing_address = $6, tax_number = $7,
+              is_active = $8, assigned_staff_id = $9, updated_at = now() WHERE id = $1`,
+      [id, ...values({ ...input, isActive }), assignedStaffId],
+    );
+    if (current.userId && isActive !== current.isActive) {
+      await client.query('UPDATE users SET is_active = $2, updated_at = now() WHERE id = $1', [current.userId, isActive]);
+    }
+    await logAudit(currentUser(req).id, 'customer.updated', 'customer', id, { companyName: input.companyName }, client);
+  });
   res.json(await getCustomer(id));
 });
 
@@ -137,6 +159,7 @@ customersRouter.post('/:id/portal-access', requireAdmin, async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   const input = portalAccessInput.parse(req.body);
   const customer = await getCustomer(id);
+  if (!customer.isActive) throw badRequest('Reactivate this customer before granting portal access');
   const passwordHash = await hashPassword(input.password);
   await withTransaction(async (client) => {
     if (customer.userId) {

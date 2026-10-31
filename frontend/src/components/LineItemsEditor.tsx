@@ -32,7 +32,7 @@ export function LineItemsEditor({ products, lines, onChange, disabled }: Props) 
           return (
             <div
               key={line.key}
-              className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 p-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_5rem_7rem_5.5rem_6.5rem_2.5rem] lg:items-center lg:border-0 lg:p-0"
+              className="grid grid-cols-2 gap-3 rounded-control bg-canvas/50 p-3 ring-1 ring-primary/[0.07] lg:grid-cols-[minmax(0,2fr)_minmax(0,1.5fr)_5rem_7rem_5.5rem_6.5rem_2.5rem] lg:items-center lg:gap-2 lg:bg-transparent lg:p-0 lg:ring-0"
             >
               <Select
                 aria-label={`Line ${index + 1} product`}
@@ -52,36 +52,45 @@ export function LineItemsEditor({ products, lines, onChange, disabled }: Props) 
                 placeholder={product?.variants.length ? 'No variant' : 'No variants'}
                 onChange={(e) => update(line.key, { variantId: e.target.value ? Number(e.target.value) : '' })}
               />
-              <Input
-                aria-label={`Line ${index + 1} quantity`}
-                type="number"
-                min={1}
-                step={1}
-                value={Number.isNaN(line.quantity) ? '' : line.quantity}
-                disabled={disabled}
-                onChange={(e) => update(line.key, { quantity: e.target.valueAsNumber })}
-              />
-              <Input
-                aria-label={`Line ${index + 1} unit price`}
-                type="number"
-                min={0}
-                step="0.01"
-                value={line.unitPrice}
-                placeholder={product ? String(listPrice(products, line)) : 'Price'}
-                disabled={disabled}
-                onChange={(e) => update(line.key, { unitPrice: e.target.value })}
-              />
-              <Input
-                aria-label={`Line ${index + 1} fallback tax rate`}
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={Number.isNaN(line.taxRate) ? '' : line.taxRate}
-                disabled={disabled}
-                onChange={(e) => update(line.key, { taxRate: e.target.value === '' ? 0 : e.target.valueAsNumber })}
-              />
-              <p className="self-center text-right text-sm font-medium tabular-nums text-ink">{formatMoney(price * (line.quantity || 0))}</p>
+              <div>
+                <span className="mb-1 block text-xs text-muted lg:hidden">Quantity</span>
+                <Input
+                  aria-label={`Line ${index + 1} quantity`}
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={Number.isNaN(line.quantity) ? '' : line.quantity}
+                  disabled={disabled}
+                  onChange={(e) => update(line.key, { quantity: e.target.valueAsNumber })}
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-xs text-muted lg:hidden">Unit price</span>
+                <Input
+                  aria-label={`Line ${index + 1} unit price`}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={line.unitPrice}
+                  placeholder={product ? String(listPrice(products, line)) : 'Price'}
+                  disabled={disabled}
+                  onChange={(e) => update(line.key, { unitPrice: e.target.value })}
+                />
+              </div>
+              <div>
+                <span className="mb-1 block text-xs text-muted lg:hidden">Fallback tax %</span>
+                <Input
+                  aria-label={`Line ${index + 1} fallback tax rate`}
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={Number.isNaN(line.taxRate) ? '' : line.taxRate}
+                  disabled={disabled}
+                  onChange={(e) => update(line.key, { taxRate: e.target.value === '' ? 0 : e.target.valueAsNumber })}
+                />
+              </div>
+              <p className="self-center text-right text-sm font-semibold tabular-nums text-ink">{formatMoney(price * (line.quantity || 0))}</p>
               {!disabled && (
                 <Button variant="ghost" aria-label={`Remove line ${index + 1}`} className="justify-self-end" onClick={() => onChange(lines.filter((l) => l.key !== line.key))}>
                   <TrashIcon className="h-4 w-4 text-slate-500" />

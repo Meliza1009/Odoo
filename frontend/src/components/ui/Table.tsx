@@ -25,7 +25,7 @@ interface DataTableProps<T> {
   onRowClick?: (row: T) => void
 }
 
-const cell = (col: { hideOnMobile?: boolean; className?: string }) => `px-4 first:pl-5 last:pr-5 ${col.hideOnMobile ? 'hidden md:table-cell' : ''} ${col.className ?? ''}`
+const cell = (col: { hideOnMobile?: boolean; className?: string }) => `px-4 first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6 ${col.hideOnMobile ? 'hidden xl:table-cell' : ''} ${col.className ?? ''}`
 
 export function DataTable<T>({
   columns,
@@ -58,7 +58,7 @@ export function DataTable<T>({
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-900/[0.06] bg-slate-50/70">
+          <tr className="border-b border-primary/[0.07] bg-canvas/40">
             {columns.map((col) => (
               <th key={col.key} scope="col" className={`py-2.5 text-left text-xs font-medium text-muted ${cell(col)}`}>
                 {col.header}
@@ -66,7 +66,7 @@ export function DataTable<T>({
             ))}
           </tr>
         </thead>
-        <tbody className={`divide-y divide-slate-900/[0.05] transition-opacity duration-200 ${loading && rows ? 'opacity-50' : ''}`}>
+        <tbody className={`divide-y divide-primary/[0.055] transition-opacity duration-200 ${loading && rows ? 'opacity-50' : ''}`}>
           {!rows
             ? [0, 1, 2, 3, 4].map((i) => (
                 <tr key={i} aria-hidden="true">
@@ -81,10 +81,16 @@ export function DataTable<T>({
                 <tr
                   key={rowKey(row)}
                   onClick={onRowClick && (() => onRowClick(row))}
-                  className={onRowClick ? 'cursor-pointer transition-colors duration-150 hover:bg-slate-50/90' : ''}
+                  onKeyDown={onRowClick && ((event) => {
+                    if (event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return
+                    event.preventDefault()
+                    onRowClick(row)
+                  })}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  className={onRowClick ? 'cursor-pointer transition-colors duration-150 hover:bg-accent-soft/45 focus-visible:bg-accent-soft/45' : ''}
                 >
                   {columns.map((col) => (
-                    <td key={col.key} className={`py-3 align-middle text-slate-700 ${cell(col)}`}>
+                    <td key={col.key} className={`py-3.5 align-middle text-slate-700 ${cell(col)}`}>
                       {col.render(row)}
                     </td>
                   ))}

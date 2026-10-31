@@ -1,6 +1,7 @@
 import { PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../auth/useAuth'
 import { ListCard } from '../../components/ListCard'
 import { Badge, Button, Checkbox, PageHeader, StatusBadge, type Column } from '../../components/ui'
 import { usePagedList } from '../../hooks/usePagedList'
@@ -28,6 +29,8 @@ const columns: Column<CustomerRow>[] = [
 
 export function CustomersPage() {
   const navigate = useNavigate()
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole('admin')
   const [includeInactive, setIncludeInactive] = useState(false)
   const [creating, setCreating] = useState(false)
   const list = usePagedList<CustomerRow>('/customers', { includeInactive })
@@ -35,9 +38,9 @@ export function CustomersPage() {
   return (
     <>
       <PageHeader
-        title="Customers"
-        description="Companies you bill, their contacts and balances."
-        actions={
+        title={isAdmin ? "Customers" : "My customers"}
+        description={isAdmin ? "Manage customers and assign the staff member responsible for each account." : "Only customers assigned to you and their account details."}
+        actions={isAdmin &&
           <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setCreating(true)}>
             New customer
           </Button>
@@ -50,11 +53,11 @@ export function CustomersPage() {
         searchPlaceholder="Search name, contact or email"
         filters={<Checkbox label="Show inactive" checked={includeInactive} onChange={(e) => setIncludeInactive(e.target.checked)} />}
         onRowClick={(c) => navigate(`/app/customers/${c.id}`)}
-        emptyTitle="No customers yet"
-        emptyDescription="Add your first customer to start sending quotations."
-        emptyAction={<Button onClick={() => setCreating(true)}>New customer</Button>}
+        emptyTitle={isAdmin ? "No customers yet" : "No assigned customers"}
+        emptyDescription={isAdmin ? "Add your first customer to start sending quotations." : "An admin can assign customer accounts to you from the customer edit form."}
+        emptyAction={isAdmin ? <Button onClick={() => setCreating(true)}>New customer</Button> : undefined}
       />
-      <CustomerFormModal open={creating} onClose={() => setCreating(false)} onSaved={(c) => navigate(`/app/customers/${c.id}`)} />
+      {isAdmin && <CustomerFormModal open={creating} onClose={() => setCreating(false)} onSaved={(c) => navigate(`/app/customers/${c.id}`)} />}
     </>
   )
 }

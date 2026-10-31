@@ -133,10 +133,10 @@ export function ProductModal({ product, canEdit, onClose, onSaved }: Props) {
               {newVariants.fields.length === 0 && <p className="text-sm text-slate-500">Optional. E.g. Brand: Odoo adds ₹560 to the base price.</p>}
               <div className="space-y-2">
                 {newVariants.fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-[1fr_1fr_7rem_auto] items-start gap-2">
-                    <Input aria-label="Attribute" placeholder="Attribute" error={errors.variants?.[index]?.attribute?.message} {...register(`variants.${index}.attribute`, { required: 'Required' })} />
-                    <Input aria-label="Value" placeholder="Value" error={errors.variants?.[index]?.value?.message} {...register(`variants.${index}.value`, { required: 'Required' })} />
-                    <Input aria-label="Extra price" type="number" step="0.01" min={0} placeholder="+ ₹" {...register(`variants.${index}.extraPrice`, { valueAsNumber: true })} />
+                  <div key={field.id} className="grid grid-cols-2 items-start gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_auto]">
+                    <Input aria-label="Attribute" className="min-w-0" placeholder="Attribute" error={errors.variants?.[index]?.attribute?.message} {...register(`variants.${index}.attribute`, { required: 'Required' })} />
+                    <Input aria-label="Value" className="min-w-0" placeholder="Value" error={errors.variants?.[index]?.value?.message} {...register(`variants.${index}.value`, { required: 'Required' })} />
+                    <Input aria-label="Extra price" className="min-w-0" type="number" step="0.01" min={0} placeholder="+ ₹" {...register(`variants.${index}.extraPrice`, { valueAsNumber: true })} />
                     <Button variant="ghost" size="md" aria-label="Remove variant" onClick={() => newVariants.remove(index)}>
                       <TrashIcon className="h-4 w-4 text-slate-500" />
                     </Button>
@@ -202,7 +202,7 @@ function VariantsEditor({ product, basePrice, canEdit, onChange }: { product: Pr
         ))}
       </div>
       {canEdit && (
-        <div className="mt-3 grid grid-cols-[1fr_1fr_7rem_auto] items-start gap-2 rounded-lg bg-slate-50 p-2">
+        <div className="mt-3 grid grid-cols-2 items-start gap-2 rounded-control bg-canvas/60 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_auto]">
           <Input aria-label="New variant attribute" placeholder="Attribute" value={draft.attribute} onChange={(e) => setDraft({ ...draft, attribute: e.target.value })} />
           <Input aria-label="New variant value" placeholder="Value" value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} />
           <Input aria-label="New variant extra price" type="number" min={0} step="0.01" value={draft.extraPrice} onChange={(e) => setDraft({ ...draft, extraPrice: Number(e.target.value) })} />
@@ -234,7 +234,7 @@ function VariantRow({
   const dirty = values.attribute !== variant.attribute || values.value !== variant.value || values.extraPrice !== variant.extraPrice
 
   return (
-    <div className={`grid grid-cols-[1fr_1fr_7rem_auto] items-center gap-2 ${variant.isActive ? '' : 'opacity-60'}`}>
+    <div className={`grid grid-cols-2 items-center gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_7rem_auto] ${variant.isActive ? '' : 'opacity-60'}`}>
       <Input aria-label="Attribute" value={values.attribute} disabled={!canEdit} onChange={(e) => setValues({ ...values, attribute: e.target.value })} />
       <Input aria-label="Value" value={values.value} disabled={!canEdit} onChange={(e) => setValues({ ...values, value: e.target.value })} />
       <Input aria-label="Extra price" type="number" min={0} step="0.01" value={values.extraPrice} disabled={!canEdit} onChange={(e) => setValues({ ...values, extraPrice: Number(e.target.value) })} />

@@ -4,7 +4,7 @@ import { dateSchema, idSchema, moneySchema, optionalText, paginationSchema } fro
 export const PAYMENT_METHODS = ['cash', 'bank_transfer', 'card', 'upi', 'other'] as const;
 
 export const listInvoicesQuery = paginationSchema.extend({
-  status: z.enum(['draft', 'confirmed', 'paid', 'cancelled', 'overdue', 'outstanding']).optional(),
+  status: z.enum(['draft', 'confirmed', 'paid', 'cancelled', 'overdue', 'outstanding', 'issued']).optional(),
   customerId: idSchema.optional(),
   subscriptionId: idSchema.optional(),
   planId: idSchema.optional(),
@@ -24,6 +24,7 @@ export const listPaymentsQuery = paginationSchema.extend({
   paymentMethod: z.enum(PAYMENT_METHODS).optional(),
   customerId: idSchema.optional(),
   invoiceId: idSchema.optional(),
+  planId: idSchema.optional(),
   dateFrom: dateSchema.optional(),
   dateTo: dateSchema.optional(),
 });

@@ -16,9 +16,10 @@ afterAll(closeDatabase);
 describe('customers', () => {
   let customerId: number;
 
-  it('lets staff create and list customers; customers themselves are forbidden', async () => {
-    const created = await api().post('/api/customers').set(staff.auth).send({
+  it('lets admins create customers and assigned staff list them; staff and customers cannot create', async () => {
+    const created = await api().post('/api/customers').set(admin.auth).send({
       companyName: 'Northwind Traders',
+      assignedStaffId: staff.id,
       contactName: 'Meera Iyer',
       email: 'Northwind@Example.com',
       phone: '+91 98400 33003',
@@ -26,6 +27,7 @@ describe('customers', () => {
       taxNumber: '33KLMNO9012P1Z9',
     });
     expect(created.status).toBe(201);
+    expect((await api().post('/api/customers').set(staff.auth).send({companyName: 'Unauthorized'})).status).toBe(403);
     customerId = created.body.id;
     expect(created.body).toMatchObject({ companyName: 'Northwind Traders', email: 'northwind@example.com', isActive: true, activeSubscriptions: 0, outstandingBalance: 0 });
 
@@ -69,6 +71,17 @@ describe('customers', () => {
 
     const reset = await api().post(`/api/customers/${customerId}/portal-access`).set(admin.auth).send({ email: 'meera@example.com', password: 'Chang3d!Pass' });
     expect(reset.status).toBe(200);
+    expect((await api().post('/api/auth/login').send({ email: 'meera@example.com', password: 'Chang3d!Pass' })).status).toBe(200);
+  });
+
+  it('editing customer status locks existing sessions and supports reactivation', async () => {
+    const login = await api().post('/api/auth/login').send({ email: 'meera@example.com', password: 'Chang3d!Pass' });
+    const auth = { Authorization: `Bearer ${login.body.token}` };
+    await api().put(`/api/customers/${customerId}`).set(admin.auth).send({ companyName: 'Northwind Traders Ltd', isActive: false });
+    expect((await api().get('/api/auth/me').set(auth)).status).toBe(401);
+    expect((await api().post('/api/auth/login').send({ email: 'meera@example.com', password: 'Chang3d!Pass' })).status).toBe(401);
+    expect((await api().post(`/api/customers/${customerId}/portal-access`).set(admin.auth).send({ email: 'meera@example.com', password: PASSWORD })).status).toBe(400);
+    await api().put(`/api/customers/${customerId}`).set(admin.auth).send({ companyName: 'Northwind Traders Ltd', isActive: true });
     expect((await api().post('/api/auth/login').send({ email: 'meera@example.com', password: 'Chang3d!Pass' })).status).toBe(200);
   });
 

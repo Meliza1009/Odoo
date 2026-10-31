@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { pool } from '../src/db/pool.js';
 import { addDays, addInterval, todayIso } from '../src/lib/dates.js';
-import { api, closeDatabase, createCustomer, createUser, resetDatabase, type TestUser } from './helpers.js';
+import { assignCustomers, api, closeDatabase, createCustomer, createUser, resetDatabase, type TestUser } from './helpers.js';
 
 let admin: TestUser;
 let staff: TestUser;
@@ -59,6 +59,7 @@ beforeAll(async () => {
     createUser('customer', { companyName: 'Green Leaf Store' }),
     createUser('customer', { companyName: 'Northwind Traders' }),
   ]);
+  await assignCustomers(staff, customerUser.customerId!, otherCustomerUser.customerId!);
   customerId = customerUser.customerId!;
 
   const product = await api()
@@ -137,7 +138,7 @@ describe('creating subscriptions', () => {
     expect((await newSubscription({ expiryDate: addDays(today, -1) })).status).toBe(400);
     expect((await newSubscription({ lines: [{ productId, quantity: 0 }] })).status).toBe(400);
     expect((await newSubscription({ lines: [{ productId, quantity: 1, taxRate: 150 }] })).status).toBe(400);
-    expect((await newSubscription({ customerId: 99999 })).status).toBe(400);
+    expect((await newSubscription({ customerId: 99999 })).status).toBe(404);
 
     const limited = await createPlan({ name: 'Old Promo', billingInterval: 'monthly', price: 1, startDate: '2020-01-01', endDate: '2020-12-31' });
     const res = await newSubscription({ planId: limited });
@@ -294,7 +295,7 @@ describe('pause, resume, renew and close early', () => {
     const autoId = await activeSubscription({ planId: autoPlan, startDate: addDays(today, -60), expiryDate: addDays(today, 10) });
     await pool.query('UPDATE subscriptions SET expiry_date = $2 WHERE id = ANY($1::int[])', [[manualId, autoId], addDays(today, -1)]);
 
-    const run = await api().post('/api/subscriptions/close-expired').set(staff.auth);
+    const run = await api().post('/api/subscriptions/close-expired').set(admin.auth);
     expect(run.status).toBe(200);
     expect(run.body.subscriptions.map((s: { id: number }) => s.id)).toEqual([autoId]);
 
@@ -354,7 +355,7 @@ describe('listing and customer access', () => {
   });
 
   it('supports customers created without a portal login', async () => {
-    const companyId = await createCustomer('Apex Manufacturing');
+    const companyId = await createCustomer('Apex Manufacturing', null, staff.id);
     const res = await newSubscription({ customerId: companyId });
     expect(res.status).toBe(201);
     expect(res.body.customerName).toBe('Apex Manufacturing');

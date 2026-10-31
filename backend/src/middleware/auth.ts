@@ -33,7 +33,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
   // Load the user on every request so deactivation and role changes take effect immediately.
   const { rows } = await query<AuthUser & { isActive: boolean }>(
-    `SELECT u.id, u.email, u.full_name AS "fullName", u.role, u.is_active AS "isActive", c.id AS "customerId"
+    `SELECT u.id, u.email, u.full_name AS "fullName", u.role, (u.is_active AND COALESCE(c.is_active, TRUE)) AS "isActive", c.id AS "customerId"
        FROM users u
        LEFT JOIN customers c ON c.user_id = u.id
       WHERE u.id = $1`,

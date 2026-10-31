@@ -8,6 +8,7 @@ import type { Role } from '../../lib/jwt.js';
 export interface CustomerProfile {
   id: number;
   userId: number | null;
+  assignedStaffId: number | null;
   companyName: string;
   contactName: string | null;
   email: string | null;
@@ -31,7 +32,7 @@ export interface UserProfile {
 export const USER_COLUMNS = `u.id, u.email, u.full_name AS "fullName", u.role, u.is_active AS "isActive", u.created_at AS "createdAt"`;
 
 export const CUSTOMER_COLUMNS = `
-  c.id, c.user_id AS "userId", c.company_name AS "companyName", c.contact_name AS "contactName", c.email, c.phone,
+  c.id, c.user_id AS "userId", c.assigned_staff_id AS "assignedStaffId", c.company_name AS "companyName", c.contact_name AS "contactName", c.email, c.phone,
   c.billing_address AS "billingAddress", c.tax_number AS "taxNumber", c.is_active AS "isActive", c.created_at AS "createdAt"`;
 
 /** The signed-in user as the frontend sees it: account fields plus the linked customer record for portal users. */

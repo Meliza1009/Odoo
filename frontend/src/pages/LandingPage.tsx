@@ -20,7 +20,7 @@ function Bezel({ children, className = '', inner = '' }: { children: ReactNode; 
 /** Real product screenshots captured from the running app (public/screens). Intrinsic sizes prevent layout shift. */
 const SHOTS = {
   dashboard: { src: '/screens/dashboard.jpg', width: 2160, height: 1350 },
-  invoiceLines: { src: '/screens/invoice-lines.jpg', width: 1468, height: 808 },
+  invoiceLines: { src: '/screens/invoice-lines.jpg', width: 1120, height: 1072 },
   invoiceMain: { src: '/screens/invoice-main.jpg', width: 2384, height: 1600 },
   portal: { src: '/screens/portal.jpg', width: 2160, height: 1350 },
 }
@@ -52,23 +52,26 @@ function PillCta({ to, children, tone = 'dark' }: { to: string; children: ReactN
   )
 }
 
-const LIFECYCLE = ['Draft', 'Quotation', 'Confirmed', 'Active', 'Closed']
+const LIFECYCLE = [
+  { number: '01', title: 'Build the quote', detail: 'Start with a plan or a ready-made template. Set the products and terms once.' },
+  { number: '02', title: 'Start the subscription', detail: 'Confirm, activate, pause or renew with a clear history at every step.' },
+  { number: '03', title: 'Collect with confidence', detail: 'Billing creates the invoice; taxes, discounts and payments stay in sync.' },
+]
 
 
 export function LandingPage() {
   return (
     <div className="grain relative min-h-[100dvh] overflow-x-clip bg-background">
-      {/* Hero backdrop: brand-teal light from the top right, a dot lattice behind the product shot, a cool shadow top left. */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[1300px]">
-        <div className="absolute inset-0 bg-[radial-gradient(55%_45%_at_78%_10%,rgb(20_166_147/0.18),transparent_70%),radial-gradient(35%_40%_at_8%_0%,rgb(14_23_38/0.07),transparent_70%),radial-gradient(40%_30%_at_40%_95%,rgb(20_166_147/0.07),transparent_70%)]" />
-        <div className="bg-dots mask-fade-right absolute inset-0" />
-        <div className="absolute inset-x-0 bottom-0 h-[420px] bg-gradient-to-b from-transparent to-background" />
+      {/* Hero backdrop: a light paper field with teal light and a restrained dot fade. */}
+      <div aria-hidden="true" className="paper-field pointer-events-none absolute inset-x-0 top-0 h-[960px]">
+        <div className="bg-dots mask-fade-right absolute inset-0 opacity-30" />
+        <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-b from-transparent to-background" />
       </div>
 
       <header className="fixed inset-x-0 top-4 z-30 px-4">
         <nav
           aria-label="Site"
-          className="mx-auto flex max-w-5xl items-center justify-between gap-4 rounded-full bg-surface/75 py-2 pl-5 pr-2 shadow-[0_8px_32px_-16px_rgb(14_23_38/0.25)] ring-1 ring-slate-900/[0.07] backdrop-blur-xl"
+          className="mx-auto flex max-w-6xl items-center justify-between gap-2 rounded-full bg-surface/90 py-2 pl-3 pr-2 sm:gap-4 sm:pl-5 shadow-[0_8px_32px_-16px_rgb(14_23_38/0.25)] ring-1 ring-slate-900/[0.07] backdrop-blur-xl"
         >
           <Link to="/" aria-label="Brightloop home">
             <Logo />
@@ -81,11 +84,11 @@ export function LandingPage() {
               Customer portal
             </a>
           </div>
-          <div className="flex items-center gap-1">
-            <Link to="/login" className="rounded-full px-3.5 py-2 text-[14px] font-medium text-ink transition-colors hover:bg-slate-900/[0.05]">
+          <div className="flex shrink-0 items-center gap-1">
+            <Link to="/login" className="inline-flex min-h-10 items-center whitespace-nowrap rounded-full px-2 py-2 text-xs font-medium text-ink sm:px-3.5 sm:text-[14px] transition-colors hover:bg-slate-900/[0.05]">
               Log in
             </Link>
-            <Link to="/register" className="rounded-full bg-primary px-4 py-2 text-[14px] font-medium text-white transition duration-300 ease-soft hover:bg-primary-light active:scale-[0.98]">
+            <Link to="/register" className="inline-flex min-h-10 items-center whitespace-nowrap rounded-full bg-primary px-2 py-2 text-xs font-medium text-white sm:px-4 sm:text-[14px] transition duration-300 ease-soft hover:bg-primary-light active:scale-[0.98]">
               Get started
             </Link>
           </div>
@@ -93,146 +96,135 @@ export function LandingPage() {
       </header>
 
       <main>
-        <section className="relative mx-auto grid max-w-[1320px] items-center gap-14 px-4 pb-16 pt-32 sm:px-8 lg:grid-cols-12 lg:gap-8 lg:pb-20 lg:pt-40">
+        <section className="relative mx-auto grid max-w-[1400px] items-center gap-12 px-4 pb-20 pt-36 sm:px-8 lg:min-h-[830px] lg:grid-cols-12 lg:gap-8 lg:pb-24 lg:pt-28">
           <div className="lg:col-span-5">
             <Reveal>
-              <p className="inline-flex rounded-full bg-accent-soft px-3 py-1 text-[12px] font-medium text-accent-dark ring-1 ring-accent-dark/10">Subscription billing for Brightloop Software</p>
+              <p className="mb-6 flex items-center gap-3 text-[12px] font-semibold tracking-[0.14em] text-accent-dark uppercase">
+                <span className="h-px w-8 bg-accent-dark" /> Subscription management, simplified
+              </p>
             </Reveal>
             <Reveal delay={80}>
-              <h1 className="mt-6 text-[2.75rem] font-semibold leading-[1.02] tracking-[-0.045em] text-ink sm:text-6xl lg:text-[4.1rem]">Recurring billing that runs itself.</h1>
+              <h1 className="max-w-[12ch] text-[3.3rem] font-semibold leading-[0.99] tracking-[-0.065em] text-ink sm:text-7xl lg:text-[clamp(4rem,5.2vw,5.65rem)]">
+                Better billing.<br /><span className="text-accent-dark">Brighter business.</span>
+              </h1>
             </Reveal>
             <Reveal delay={160}>
-              <p className="mt-6 max-w-[42ch] text-[17px] leading-relaxed text-muted">
-                Plans, quotations, subscriptions, invoices and payments in one place, with taxes and discounts applied on every billing day.
+              <p className="mt-7 max-w-[38ch] text-[17px] leading-relaxed text-muted">
+                From the first quote to the final payment, keep every subscription moving in one beautifully clear workspace.
               </p>
             </Reveal>
             <Reveal delay={240}>
               <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
                 <PillCta to="/register">Create an account</PillCta>
                 <Link to="/login" className="group inline-flex items-center gap-1.5 text-[15px] font-medium text-ink">
-                  Explore the demo
+                  See the demo
                   <ArrowRightIcon className="h-4 w-4 transition-transform duration-300 ease-soft group-hover:translate-x-1" />
                 </Link>
               </div>
             </Reveal>
           </div>
 
-          <div className="relative lg:col-span-7">
+          <div className="relative lg:col-span-7 lg:pl-8">
             <Reveal delay={200}>
-              <Bezel className="lg:-mr-28 xl:-mr-40">
-                <Screenshot shot="dashboard" alt="Brightloop dashboard showing monthly recurring revenue, active subscriptions, collections and overdue invoices" eager />
-              </Bezel>
+              <div className="loop-field overflow-hidden rounded-[2rem] bg-primary px-5 pb-12 pt-12 shadow-[0_36px_80px_-40px_rgb(14_23_38/0.5)] sm:px-10 sm:pt-16 lg:-mr-28 lg:px-10 lg:pb-16 xl:-mr-40">
+                <p className="mb-6 text-[11px] font-medium tracking-[0.16em] text-white/65 uppercase">A clearer picture of every cycle</p>
+                <div className="overflow-hidden rounded-t-xl rounded-b-md bg-white shadow-pop ring-1 ring-white/30">
+                  <Screenshot shot="dashboard" alt="Brightloop dashboard showing monthly recurring revenue, active subscriptions, collections and overdue invoices" eager />
+                </div>
+              </div>
             </Reveal>
-            <Reveal delay={420} className="relative z-10 -mt-16 ml-4 w-[78%] max-w-lg sm:-mt-24 md:-mt-32 md:ml-[-3rem] md:-rotate-[1.5deg] md:w-[64%]">
+            <Reveal delay={420} className="relative z-10 -mt-9 ml-3 w-[76%] max-w-lg sm:-mt-16 md:-mt-20 md:-ml-10 md:w-[62%]">
               <Bezel>
-                <Screenshot shot="invoiceLines" alt="Invoice lines with a welcome discount and 18% GST applied per line, totalling ₹6,040.42" />
+                <Screenshot shot="invoiceLines" alt="Invoice lines with a welcome discount and 18% GST applied per line" />
               </Bezel>
             </Reveal>
           </div>
         </section>
 
-        <section id="features" className="relative isolate mx-auto max-w-[1240px] scroll-mt-28 px-4 py-24 sm:px-8 lg:py-32">
-          {/* Features backdrop: a tinted band that bleeds past the container, dots behind the heading, and two soft glows under the bento. */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-[100vw] -translate-x-1/2">
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgb(226_233_236/0.6)_30%,rgb(226_233_236/0.6)_78%,transparent)]" />
-            <div className="bg-dots mask-fade-left absolute inset-x-0 top-0 h-[560px]" />
-            <div className="bg-dots-accent mask-fade-right absolute inset-x-0 bottom-0 h-[620px]" />
-            <div className="absolute inset-0 bg-[radial-gradient(38%_32%_at_15%_62%,rgb(20_166_147/0.22),transparent_70%),radial-gradient(32%_30%_at_90%_22%,rgb(14_23_38/0.08),transparent_70%),radial-gradient(34%_28%_at_78%_88%,rgb(20_166_147/0.18),transparent_70%)]" />
-          </div>
-          <Reveal>
-            <h2 className="max-w-[20ch] text-4xl font-semibold leading-[1.05] tracking-[-0.04em] text-ink sm:text-5xl">Everything between the quote and the payment.</h2>
-          </Reveal>
-
-          <div className="mt-14 grid grid-cols-1 gap-5 lg:grid-cols-12">
-            <Reveal className="lg:col-span-7 lg:row-span-2">
-              <Bezel className="h-full" inner="flex h-full flex-col">
-                <div className="p-8 sm:p-10">
-                  <ReceiptIcon className="h-6 w-6 text-accent-dark" />
-                  <h3 className="mt-5 text-2xl font-semibold tracking-[-0.025em] text-ink">Billing day without the spreadsheet</h3>
-                  <p className="mt-3 max-w-[48ch] leading-relaxed text-muted">
-                    Every active subscription that is due becomes an invoice with customer details, lines, taxes and totals filled in. A period is never billed twice and never skipped.
-                  </p>
-                </div>
-                <div className="relative mt-auto flex-1 overflow-hidden pl-8 sm:pl-10">
-                  <div className="overflow-hidden rounded-tl-xl ring-1 ring-slate-900/[0.07]">
-                    <Screenshot shot="invoiceMain" alt="Invoice detail with lines, discount, tax, totals and the payment that settled it" className="min-w-[560px]" />
-                  </div>
-                </div>
-              </Bezel>
+        <section id="features" className="relative isolate scroll-mt-28 py-20 sm:py-28">
+          {/* Features backdrop: a full-width canvas that separates the product flow from the hero. */}
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-canvas" />
+          <div className="mx-auto max-w-[1240px] px-4 sm:px-8">
+            <Reveal>
+              <div className="flex flex-col gap-5 border-t border-primary/15 pt-6 md:flex-row md:justify-between">
+                <p className="text-xs font-semibold tracking-[0.14em] text-accent-dark uppercase">The Brightloop flow</p>
+                <h2 className="max-w-[18ch] text-4xl font-semibold leading-[1.04] tracking-[-0.05em] text-ink sm:text-5xl">
+                  From first quote to final payment. All connected.
+                </h2>
+              </div>
             </Reveal>
-
-            <Reveal delay={100} className="lg:col-span-5">
-              <Bezel className="h-full" inner="h-full bg-[linear-gradient(160deg,var(--color-accent-soft),#ffffff_70%)] p-8 sm:p-10">
-                <h3 className="text-xl font-semibold tracking-[-0.02em] text-ink">A lifecycle you can trust</h3>
-                <p className="mt-2 leading-relaxed text-muted">Each subscription moves through the same states, and each plan decides whether it can pause, renew or close early.</p>
-                <ol className="mt-7 flex flex-wrap items-center gap-2" aria-label="Subscription lifecycle">
-                  {LIFECYCLE.map((state, i) => (
-                    <li key={state} className="flex items-center gap-2">
-                      <span className={`rounded-lg px-2.5 py-1 text-[13px] font-medium ring-1 ${state === 'Active' ? 'bg-accent-dark text-white ring-accent-dark' : 'bg-surface text-ink ring-slate-900/10'}`}>{state}</span>
-                      {i < LIFECYCLE.length - 1 && <ArrowRightIcon className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />}
-                    </li>
-                  ))}
-                </ol>
-              </Bezel>
-            </Reveal>
-
-            <Reveal delay={180} className="lg:col-span-5">
-              <Bezel className="h-full" inner="h-full p-8 sm:p-10">
-                <h3 className="text-xl font-semibold tracking-[-0.02em] text-ink">Taxes and discounts, applied for you</h3>
-                <p className="mt-2 leading-relaxed text-muted">Rules are set once by an admin and picked up by every invoice until they expire or run out.</p>
-                <dl className="mt-6 divide-y divide-slate-900/[0.06] text-[14px]">
-                  <div className="flex items-baseline justify-between gap-4 pb-3">
-                    <dt className="font-medium text-ink">GST 18%</dt>
-                    <dd className="text-right text-muted">every product line</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 py-3">
-                    <dt className="font-medium text-ink">GST 12%</dt>
-                    <dd className="text-right text-muted">physical goods only</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4 pt-3">
-                    <dt className="font-medium text-ink">Welcome offer ₹500</dt>
-                    <dd className="text-right text-muted">orders over ₹2,000, first 100 uses</dd>
-                  </div>
-                </dl>
-              </Bezel>
-            </Reveal>
-
-            <div id="portal" className="scroll-mt-28 lg:col-span-12">
-              <Reveal>
-                <Bezel inner="grid items-center gap-8 lg:grid-cols-12">
-                  <div className="p-8 sm:p-10 lg:col-span-5">
-                    <StorefrontIcon className="h-6 w-6 text-accent-dark" />
-                    <h3 className="mt-5 text-2xl font-semibold tracking-[-0.025em] text-ink">A portal your customers will actually use</h3>
-                    <p className="mt-3 max-w-[44ch] leading-relaxed text-muted">
-                      Customers sign in to see their plans, renewal dates, invoices and payment history. No more emailing finance for a copy of last month.
-                    </p>
-                  </div>
-                  <div className="self-end overflow-hidden pl-8 sm:pl-10 lg:col-span-7 lg:pl-0">
-                    <div className="overflow-hidden rounded-tl-xl ring-1 ring-slate-900/[0.07]">
-                      <Screenshot shot="portal" alt="Customer portal with amount due, next invoice date, subscriptions and recent invoices" className="min-w-[620px]" />
+            <div className="mt-14 grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-16">
+              <ol className="min-w-0 border-t border-primary/15" aria-label="Subscription lifecycle">
+                {LIFECYCLE.map(({ number, title, detail }) => (
+                  <li key={number} className="grid grid-cols-[3rem_1fr] gap-4 border-b border-primary/15 py-7 sm:py-9">
+                    <span className="pt-1 font-mono text-sm text-accent-dark">{number}</span>
+                    <div>
+                      <h3 className="text-xl font-semibold tracking-[-0.03em] text-ink sm:text-2xl">{title}</h3>
+                      <p className="mt-2 max-w-[44ch] text-sm leading-relaxed text-muted sm:text-[15px]">{detail}</p>
                     </div>
+                  </li>
+                ))}
+              </ol>
+              <Reveal delay={120} className="min-w-0 lg:pt-5">
+                <div className="overflow-hidden rounded-[1.5rem] bg-primary p-4 pb-0 shadow-[0_30px_65px_-35px_rgb(14_23_38/0.45)] sm:p-7 sm:pb-0">
+                  <div className="flex items-center justify-between gap-4 pb-5 text-[11px] font-medium tracking-[0.12em] text-white/70 uppercase">
+                    <span>Invoices, without the busywork</span>
+                    <ReceiptIcon className="h-5 w-5 text-accent" />
                   </div>
-                </Bezel>
+                  <div className="overflow-hidden rounded-t-xl ring-1 ring-white/10">
+                    <Screenshot shot="invoiceMain" alt="Invoice detail with lines, discounts, tax, totals and the payment that settled it" className="min-w-[460px]" />
+                  </div>
+                </div>
               </Reveal>
             </div>
+            <Reveal className="mt-16 grid items-center gap-10 border-t border-primary/15 pt-9 md:grid-cols-2 md:gap-16">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.14em] text-accent-dark uppercase">Precision at every step</p>
+                <h3 className="mt-4 max-w-[20ch] text-3xl font-semibold leading-[1.1] tracking-[-0.04em] text-ink sm:text-4xl">The rules are set once. The details take care of themselves.</h3>
+              </div>
+              <p className="max-w-[48ch] text-base leading-relaxed text-muted">
+                Plan-specific terms, automated tax rules and recurring discounts follow every active subscription into its next invoice. You keep control without keeping another spreadsheet.
+              </p>
+            </Reveal>
           </div>
+        </section>
+
+        <section id="portal" className="mx-auto max-w-[1240px] scroll-mt-28 px-4 py-20 sm:px-8 lg:py-28">
+          <Reveal className="grid items-center gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+            <div>
+              <StorefrontIcon className="h-8 w-8 text-accent-dark" weight="light" />
+              <p className="mt-7 text-xs font-semibold tracking-[0.14em] text-accent-dark uppercase">Customer portal</p>
+              <h2 className="mt-4 max-w-[14ch] text-4xl font-semibold leading-[1.04] tracking-[-0.05em] text-ink sm:text-5xl">
+                A clearer view for everyone on the other side.
+              </h2>
+              <p className="mt-6 max-w-[42ch] text-base leading-relaxed text-muted">
+                Give customers a place to see what is active, what is due and what has been paid. No more chasing a copy of last month’s invoice.
+              </p>
+              <Link to="/login" className="group mt-7 inline-flex items-center gap-2 text-sm font-semibold text-accent-dark">
+                View your account <ArrowRightIcon className="h-4 w-4 transition-transform duration-200 ease-soft group-hover:translate-x-1" />
+              </Link>
+            </div>
+            <div className="overflow-hidden rounded-[1.5rem] bg-wash p-4 pb-0 sm:p-8 sm:pb-0">
+              <div className="overflow-hidden rounded-t-xl bg-surface shadow-pop ring-1 ring-primary/10">
+                <Screenshot shot="portal" alt="Customer portal showing subscriptions, upcoming invoice date and recent invoices" className="min-w-[500px]" />
+              </div>
+            </div>
+          </Reveal>
         </section>
 
         <section className="mx-auto max-w-[1240px] px-4 pb-24 sm:px-8 lg:pb-32">
           <Reveal>
-            <Bezel inner="relative overflow-hidden px-8 py-16 sm:px-14 sm:py-20">
-              <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_80%_at_100%_100%,rgb(20_166_147/0.18),transparent_70%),radial-gradient(30%_60%_at_0%_0%,rgb(14_23_38/0.05),transparent_70%)]" />
-              <div aria-hidden="true" className="bg-dots-accent mask-fade-right pointer-events-none absolute inset-0" />
+            <div className="loop-field relative overflow-hidden rounded-[1.75rem] bg-primary px-8 py-14 sm:px-14 sm:py-16">
               <div className="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
                 <div>
-                  <h2 className="max-w-[18ch] text-3xl font-semibold leading-[1.1] tracking-[-0.035em] text-ink sm:text-4xl">Already billed by Brightloop?</h2>
-                  <p className="mt-3 max-w-[46ch] leading-relaxed text-muted">Sign in with the email on your invoices to see what is due and download past invoices.</p>
+                  <h2 className="max-w-[18ch] text-3xl font-semibold leading-[1.1] tracking-[-0.035em] text-white sm:text-4xl">Already billed by Brightloop?</h2>
+                  <p className="mt-3 max-w-[46ch] leading-relaxed text-white/70">Sign in with the email on your invoices to see what is due and download past invoices.</p>
                 </div>
                 <PillCta to="/login" tone="light">
                   Log in to the portal
                 </PillCta>
               </div>
-            </Bezel>
+            </div>
           </Reveal>
         </section>
       </main>

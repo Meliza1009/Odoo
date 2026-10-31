@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import type { z } from 'zod';
 import { pool, query, withTransaction, type DbClient } from '../../db/pool.js';
+import { assertCustomerAccess, customerScope } from '../../lib/customer-access.js';
 import { logAudit } from '../../lib/audit.js';
 import { addDays, addInterval, maxDate, todayIso } from '../../lib/dates.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
@@ -73,8 +74,11 @@ const FROM = `FROM subscriptions s JOIN customers c ON c.id = s.customer_id JOIN
 const isInternal = (user: AuthUser) => user.role === 'admin' || user.role === 'staff';
 
 /** Customers only ever see their own, non-draft subscriptions. */
-function assertCanView(user: AuthUser, row: SubscriptionRow) {
-  if (isInternal(user)) return;
+async function assertCanView(user: AuthUser, row: SubscriptionRow, client: DbClient = pool) {
+  if (isInternal(user)) {
+    await assertCustomerAccess(row.customerId, user, client);
+    return;
+  }
   if (row.customerId !== user.customerId || row.status === 'draft') throw notFound('Subscription not found');
 }
 
@@ -86,14 +90,22 @@ export async function listSubscriptions(user: AuthUser, q: z.infer<typeof listSu
     where.push(sql.replaceAll('?', `$${params.length}`));
   };
 
+  where.push(customerScope(user, 's.customer_id', params));
   if (!isInternal(user)) {
-    add('s.customer_id = ?', user.customerId ?? -1);
     where.push(`s.status <> 'draft'`);
   } else if (q.customerId) {
     add('s.customer_id = ?', q.customerId);
   }
+  if (q.renewalsDue) {
+    const today = todayIso();
+    where.push("s.status IN ('active', 'paused')");
+    add('s.expiry_date >= ?', today);
+    add('s.expiry_date <= ?', addDays(today, 30));
+  }
   if (q.status.length) add('s.status = ANY(?::text[])', q.status);
   if (q.planId) add('s.plan_id = ?', q.planId);
+  if (q.closedFrom) add('s.closed_at::date >= ?', q.closedFrom);
+  if (q.closedTo) add('s.closed_at::date <= ?', q.closedTo);
   if (q.q) add('(s.subscription_number ILIKE ? OR c.company_name ILIKE ?)', `%${q.q}%`);
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -118,7 +130,7 @@ async function findSubscription(id: number, client: DbClient = pool, lock = fals
 
 export async function getSubscription(id: number, user: AuthUser, client: DbClient = pool) {
   const row = await findSubscription(id, client);
-  assertCanView(user, row);
+  await assertCanView(user, row, client);
   // Sequential on purpose: `client` may be a single transaction connection, which cannot run queries in parallel.
   const lines = await query(
     `SELECT l.id, l.line_type AS "lineType", l.product_id AS "productId", l.variant_id AS "variantId", l.description,
@@ -172,6 +184,7 @@ function assertPlanAvailable(plan: Plan, startDate: string) {
 
 export async function createSubscription(input: z.infer<typeof createSubscriptionInput>, actor: AuthUser, templateId: number | null = null) {
   return withTransaction(async (client) => {
+    await assertCustomerAccess(input.customerId, actor, client);
     await assertCustomer(client, input.customerId);
     const plan = await getPlan(input.planId, client);
     assertPlanAvailable(plan, input.startDate);
@@ -227,7 +240,9 @@ export async function createFromTemplate(input: z.infer<typeof fromTemplateInput
 export async function updateSubscription(id: number, input: z.infer<typeof updateSubscriptionInput>, actor: AuthUser) {
   return withTransaction(async (client) => {
     const current = await findSubscription(id, client, true);
+    await assertCanView(actor, current, client);
     if (!EDITABLE.includes(current.status)) throw conflict(`A ${current.status} subscription can no longer be edited`);
+    await assertCustomerAccess(input.customerId, actor, client);
     await assertCustomer(client, input.customerId);
     const plan = await getPlan(input.planId, client);
     assertPlanAvailable(plan, input.startDate);
@@ -254,6 +269,7 @@ async function lineCount(client: pg.PoolClient, id: number) {
 export async function transition(id: number, to: SubscriptionStatus, actor: AuthUser, reason: string | null = null) {
   return withTransaction(async (client) => {
     const sub = await findSubscription(id, client, true);
+    await assertCanView(actor, sub, client);
     const from = sub.status;
     if (!TRANSITIONS[from].includes(to)) throw conflict(`Cannot change a ${from} subscription to ${to}`);
     const plan = await getPlan(sub.planId, client);
@@ -305,6 +321,7 @@ export async function transition(id: number, to: SubscriptionStatus, actor: Auth
 export async function renew(id: number, periods: number, actor: AuthUser) {
   return withTransaction(async (client) => {
     const sub = await findSubscription(id, client, true);
+    await assertCanView(actor, sub, client);
     const plan = await getPlan(sub.planId, client);
     if (!plan.canRenew) throw conflict(`Plan "${plan.name}" does not allow renewals`);
     const reopen = sub.status === 'closed' && sub.closeReason === 'expired';

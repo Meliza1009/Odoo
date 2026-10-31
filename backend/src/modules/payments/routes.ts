@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { query } from '../../db/pool.js';
+import { customerScope } from '../../lib/customer-access.js';
 import { idSchema, paged } from '../../lib/validation.js';
 import { authenticate, currentUser, requireInternal } from '../../middleware/auth.js';
 import { listPaymentsQuery, paymentInput } from '../invoices/schemas.js';
@@ -19,10 +20,11 @@ paymentsRouter.get('/', async (req, res) => {
     params.push(value);
     where.push(sql.replaceAll('?', `$${params.length}`));
   };
-  if (user.role === 'customer') add('p.customer_id = ?', user.customerId ?? -1);
-  else if (q.customerId) add('p.customer_id = ?', q.customerId);
+  where.push(customerScope(user, 'p.customer_id', params));
+  if (user.role !== 'customer' && q.customerId) add('p.customer_id = ?', q.customerId);
   if (q.paymentMethod) add('p.payment_method = ?', q.paymentMethod);
   if (q.invoiceId) add('p.invoice_id = ?', q.invoiceId);
+  if (q.planId) add('s.plan_id = ?', q.planId);
   if (q.dateFrom) add('p.payment_date >= ?', q.dateFrom);
   if (q.dateTo) add('p.payment_date <= ?', q.dateTo);
   if (q.q) add('(i.invoice_number ILIKE ? OR i.customer_name ILIKE ? OR p.reference_number ILIKE ?)', `%${q.q}%`);
@@ -30,7 +32,7 @@ paymentsRouter.get('/', async (req, res) => {
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const limit = q.pageSize;
   const offset = (q.page - 1) * q.pageSize;
-  const from = 'FROM payments p JOIN invoices i ON i.id = p.invoice_id LEFT JOIN users u ON u.id = p.recorded_by';
+  const from = 'FROM payments p JOIN invoices i ON i.id = p.invoice_id JOIN subscriptions s ON s.id = i.subscription_id LEFT JOIN users u ON u.id = p.recorded_by';
   const [{ rows }, totals] = await Promise.all([
     query(
       `SELECT p.id, p.invoice_id AS "invoiceId", i.invoice_number AS "invoiceNumber", p.customer_id AS "customerId",

@@ -95,10 +95,10 @@ export function CustomerDetailPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active subscriptions" value={customer.activeSubscriptions} />
-        <StatCard label="Invoiced to date" value={formatMoney(customer.stats.invoicedTotal)} hint={`${customer.stats.invoiceCount} invoices`} />
-        <StatCard label="Outstanding" value={formatMoney(customer.outstandingBalance)} hint={`Paid ${formatMoney(customer.stats.paidTotal)}`} />
-        <StatCard label="Overdue" value={formatMoney(customer.stats.overdueBalance)} />
+        <StatCard label="Active subscriptions" value={customer.activeSubscriptions} to={`/app/subscriptions?customerId=${customer.id}&status=active`} />
+        <StatCard label="Invoiced to date" value={formatMoney(customer.stats.invoicedTotal)} to={`/app/invoices?customerId=${customer.id}&status=issued`} hint={`${customer.stats.invoiceCount} invoices`} />
+        <StatCard label="Outstanding" value={formatMoney(customer.outstandingBalance)} to={`/app/invoices?customerId=${customer.id}&status=outstanding`} hint={`Paid ${formatMoney(customer.stats.paidTotal)}`} />
+        <StatCard label="Overdue" value={formatMoney(customer.stats.overdueBalance)} to={`/app/invoices?customerId=${customer.id}&status=overdue`} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
@@ -106,6 +106,7 @@ export function CustomerDetailPage() {
           <h2 className="mb-4 font-semibold text-ink">Details</h2>
           <DetailList columns={1}
             items={[
+              { label: 'Assigned staff', value: customer.assignedStaffName ?? 'Unassigned' },
               { label: 'Email', value: customer.email },
               { label: 'Phone', value: customer.phone },
               { label: 'Tax number', value: customer.taxNumber },

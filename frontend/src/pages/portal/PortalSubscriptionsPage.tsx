@@ -1,6 +1,7 @@
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ListCard } from '../../components/ListCard'
-import { PageHeader, StatusBadge, type Column } from '../../components/ui'
+import { PageHeader, Segmented, StatusBadge, type Column } from '../../components/ui'
 import { usePagedList } from '../../hooks/usePagedList'
 import { formatDate, formatMoney, perInterval } from '../../lib/format'
 import type { SubscriptionRow } from '../../types'
@@ -17,10 +18,22 @@ const columns: Column<SubscriptionRow>[] = [
 
 export function PortalSubscriptionsPage() {
   const navigate = useNavigate()
-  const list = usePagedList<SubscriptionRow>('/subscriptions')
+  const [params] = useSearchParams()
+  const options = [
+    { value: '', label: 'All' },
+    { value: 'quotation', label: 'Quotations' },
+    { value: 'confirmed', label: 'Confirmed' },
+    { value: 'active', label: 'Active' },
+    { value: 'paused', label: 'Paused' },
+    { value: 'closed', label: 'Closed' },
+    { value: 'cancelled', label: 'Cancelled' },
+  ]
+  const [status, setStatus] = useState(options.find((o) => o.value === params.get('status'))?.value ?? '')
+  const list = usePagedList<SubscriptionRow>('/subscriptions', { status })
   return (
     <>
-      <PageHeader title="My subscriptions" description="Your plans, quotations and renewal dates." />
+      <PageHeader title="My subscriptions" description="Your plans, quotations and renewal dates." actions={<Link to="/portal/catalog" className="inline-flex min-h-10 items-center rounded-control px-4 text-sm font-semibold text-accent-dark ring-1 ring-primary/15 hover:bg-primary/5">Explore plans & products</Link>} />
+      <div className="mb-4"><Segmented label="Subscription status" value={status} onChange={setStatus} options={options} /></div>
       <ListCard
         list={list}
         columns={columns}
