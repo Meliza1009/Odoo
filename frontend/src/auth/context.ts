@@ -14,6 +14,7 @@ export interface AuthContextValue {
   loading: boolean
   login: (email: string, password: string) => Promise<User>
   register: (input: RegisterInput) => Promise<User>
+  resetPassword: (token: string, password: string) => Promise<User>
   logout: () => Promise<void>
   refresh: () => Promise<void>
   hasRole: (...roles: Role[]) => boolean

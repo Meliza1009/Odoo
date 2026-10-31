@@ -1,15 +1,17 @@
 import { LogOut, Menu, X } from 'lucide-react'
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Suspense, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Logo } from '../components/Logo'
-import { StatusBadge } from '../components/ui'
+import { LoadingState, StatusBadge } from '../components/ui'
 import { appNav } from '../navigation'
 
 /** Admin/staff shell: left sidebar on desktop, slide-in drawer on mobile and tablet. */
 export function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
 
   if (!user) return null
@@ -47,13 +49,13 @@ export function AppLayout() {
         ))}
       </nav>
       <div className="border-t border-white/10 p-4">
-        <div className="mb-3 min-w-0">
+        <NavLink to="/app/profile" onClick={() => setOpen(false)} className="mb-3 block min-w-0 rounded-lg p-2 -m-2 hover:bg-white/10" title="My profile">
           <p className="truncate text-sm font-semibold text-white">{user.fullName}</p>
           <p className="truncate text-xs text-slate-400">{user.email}</p>
           <div className="mt-2">
             <StatusBadge status={user.role} />
           </div>
-        </div>
+        </NavLink>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-white/10 hover:text-white"
@@ -83,7 +85,11 @@ export function AppLayout() {
           <Logo />
         </header>
         <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <Outlet />
+          <ErrorBoundary key={pathname}>
+            <Suspense fallback={<LoadingState />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
     </div>

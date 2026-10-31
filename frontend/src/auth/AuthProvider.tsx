@@ -59,6 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [acceptSession],
   )
 
+  const resetPassword = useCallback(
+    async (token: string, password: string) => acceptSession((await api.post<AuthResponse>('/auth/reset-password', { token, password })).data),
+    [acceptSession],
+  )
+
   const logout = useCallback(async () => {
     try {
       await api.post('/auth/logout')
@@ -72,8 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback((...roles: Role[]) => !!user && roles.includes(user.role), [user])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, register, logout, refresh, hasRole }),
-    [user, loading, login, register, logout, refresh, hasRole],
+    () => ({ user, loading, login, register, resetPassword, logout, refresh, hasRole }),
+    [user, loading, login, register, resetPassword, logout, refresh, hasRole],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
