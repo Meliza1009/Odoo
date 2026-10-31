@@ -1,4 +1,4 @@
-import { CalendarX2, Plus, Receipt } from 'lucide-react'
+import { CalendarXIcon, PlusIcon, ReceiptIcon } from '@phosphor-icons/react'
 import { useCallback, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { api, errorMessage } from '../../api/client'
@@ -45,7 +45,7 @@ function TaxRules() {
         actions={
           <div className="flex items-center gap-3">
             <Checkbox label="Show inactive" checked={includeInactive} onChange={(e) => setIncludeInactive(e.target.checked)} />
-            <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={() => setModal({ rule: null })}>
+            <Button size="sm" icon={<PlusIcon className="h-4 w-4" />} onClick={() => setModal({ rule: null })}>
               New rule
             </Button>
           </div>
@@ -208,14 +208,14 @@ function Billing() {
         <Card className="p-5">
           <h2 className="font-semibold text-ink">Billing day</h2>
           <p className="mt-1 text-sm text-slate-600">Generate invoices for every active subscription that is due. Already billed periods are never billed again.</p>
-          <Button className="mt-4" variant="accent" icon={<Receipt className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
+          <Button className="mt-4" variant="accent" icon={<ReceiptIcon className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
             Run billing
           </Button>
         </Card>
         <Card className="p-5">
           <h2 className="font-semibold text-ink">Expired subscriptions</h2>
           <p className="mt-1 text-sm text-slate-600">Close active or paused subscriptions past their expiry date whose plan has auto-close enabled.</p>
-          <Button className="mt-4" variant="secondary" icon={<CalendarX2 className="h-4 w-4" />} onClick={() => setClosing(true)}>
+          <Button className="mt-4" variant="secondary" icon={<CalendarXIcon className="h-4 w-4" />} onClick={() => setClosing(true)}>
             Close expired now
           </Button>
         </Card>

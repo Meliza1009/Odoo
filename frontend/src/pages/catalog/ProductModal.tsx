@@ -1,4 +1,4 @@
-import { Archive, Plus, RotateCcw, Save, Trash2 } from 'lucide-react'
+import { ArchiveIcon, ArrowCounterClockwiseIcon, FloppyDiskIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { api, errorMessage } from '../../api/client'
@@ -126,7 +126,7 @@ export function ProductModal({ product, canEdit, onClose, onSaved }: Props) {
             <section>
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-ink">Variants</h3>
-                <Button size="sm" variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => newVariants.append({ attribute: 'Brand', value: '', extraPrice: 0 })}>
+                <Button size="sm" variant="ghost" icon={<PlusIcon className="h-4 w-4" />} onClick={() => newVariants.append({ attribute: 'Brand', value: '', extraPrice: 0 })}>
                   Add variant
                 </Button>
               </div>
@@ -138,7 +138,7 @@ export function ProductModal({ product, canEdit, onClose, onSaved }: Props) {
                     <Input aria-label="Value" placeholder="Value" error={errors.variants?.[index]?.value?.message} {...register(`variants.${index}.value`, { required: 'Required' })} />
                     <Input aria-label="Extra price" type="number" step="0.01" min={0} placeholder="+ ₹" {...register(`variants.${index}.extraPrice`, { valueAsNumber: true })} />
                     <Button variant="ghost" size="md" aria-label="Remove variant" onClick={() => newVariants.remove(index)}>
-                      <Trash2 className="h-4 w-4 text-slate-500" />
+                      <TrashIcon className="h-4 w-4 text-slate-500" />
                     </Button>
                   </div>
                 ))}
@@ -206,7 +206,7 @@ function VariantsEditor({ product, basePrice, canEdit, onChange }: { product: Pr
           <Input aria-label="New variant attribute" placeholder="Attribute" value={draft.attribute} onChange={(e) => setDraft({ ...draft, attribute: e.target.value })} />
           <Input aria-label="New variant value" placeholder="Value" value={draft.value} onChange={(e) => setDraft({ ...draft, value: e.target.value })} />
           <Input aria-label="New variant extra price" type="number" min={0} step="0.01" value={draft.extraPrice} onChange={(e) => setDraft({ ...draft, extraPrice: Number(e.target.value) })} />
-          <Button variant="secondary" icon={<Plus className="h-4 w-4" />} loading={busyId === 'new'} onClick={add}>
+          <Button variant="secondary" icon={<PlusIcon className="h-4 w-4" />} loading={busyId === 'new'} onClick={add}>
             Add
           </Button>
         </div>
@@ -243,12 +243,12 @@ function VariantRow({
         {!variant.isActive && <Badge>Archived</Badge>}
         {canEdit && dirty && (
           <Button size="sm" variant="ghost" aria-label="Save variant" loading={busy} onClick={() => onSave(values)}>
-            <Save className="h-4 w-4" />
+            <FloppyDiskIcon className="h-4 w-4" />
           </Button>
         )}
         {canEdit && !dirty && (
           <Button size="sm" variant="ghost" aria-label={variant.isActive ? 'Archive variant' : 'Restore variant'} loading={busy} onClick={onToggle}>
-            {variant.isActive ? <Archive className="h-4 w-4 text-slate-500" /> : <RotateCcw className="h-4 w-4 text-slate-500" />}
+            {variant.isActive ? <ArchiveIcon className="h-4 w-4 text-slate-500" /> : <ArrowCounterClockwiseIcon className="h-4 w-4 text-slate-500" />}
           </Button>
         )}
       </div>

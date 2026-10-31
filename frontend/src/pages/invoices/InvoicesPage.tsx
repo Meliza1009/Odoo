@@ -1,4 +1,4 @@
-import { Receipt } from 'lucide-react'
+import { ReceiptIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { RunBillingDialog } from '../../components/RunBillingDialog'
@@ -65,7 +65,7 @@ export function InvoicesPage({ portal = false }: { portal?: boolean }) {
         description={portal ? 'Download invoices and see what is still due.' : 'Generated on billing day with taxes and discounts applied.'}
         actions={
           !portal && (
-            <Button variant="secondary" icon={<Receipt className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
+            <Button variant="secondary" icon={<ReceiptIcon className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
               Run billing
             </Button>
           )

@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, errorMessage } from '../../api/client'
@@ -48,7 +48,7 @@ export function PaymentsPage({ portal = false }: { portal?: boolean }) {
         description={portal ? 'Every payment received against your invoices.' : 'Payments recorded against invoices.'}
         actions={
           !portal && (
-            <Button icon={<Plus className="h-4 w-4" />} onClick={openRecord}>
+            <Button icon={<PlusIcon className="h-4 w-4" />} onClick={openRecord}>
               Record payment
             </Button>
           )

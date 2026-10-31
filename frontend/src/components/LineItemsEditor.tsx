@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { PlusIcon, TrashIcon } from '@phosphor-icons/react'
 import { formatMoney } from '../lib/format'
 import { effectivePrice, listPrice, newLine, type CatalogProducts, type LineDraft } from '../lib/lines'
 import { Button, Input, Select } from './ui'
@@ -49,7 +49,7 @@ export function LineItemsEditor({ products, lines, onChange, disabled }: Props) 
                 value={line.variantId}
                 disabled={disabled || !product?.variants.length}
                 options={(product?.variants ?? []).map((v) => ({ value: v.id, label: `${v.attribute}: ${v.value}${v.extraPrice ? ` (+${formatMoney(v.extraPrice)})` : ''}` }))}
-                placeholder={product?.variants.length ? 'No variant' : '—'}
+                placeholder={product?.variants.length ? 'No variant' : 'No variants'}
                 onChange={(e) => update(line.key, { variantId: e.target.value ? Number(e.target.value) : '' })}
               />
               <Input
@@ -84,7 +84,7 @@ export function LineItemsEditor({ products, lines, onChange, disabled }: Props) 
               <p className="self-center text-right text-sm font-medium tabular-nums text-ink">{formatMoney(price * (line.quantity || 0))}</p>
               {!disabled && (
                 <Button variant="ghost" aria-label={`Remove line ${index + 1}`} className="justify-self-end" onClick={() => onChange(lines.filter((l) => l.key !== line.key))}>
-                  <Trash2 className="h-4 w-4 text-slate-500" />
+                  <TrashIcon className="h-4 w-4 text-slate-500" />
                 </Button>
               )}
             </div>
@@ -93,7 +93,7 @@ export function LineItemsEditor({ products, lines, onChange, disabled }: Props) 
       </div>
       {lines.length === 0 && <p className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500">No product lines yet.</p>}
       {!disabled && (
-        <Button variant="secondary" size="sm" className="mt-3" icon={<Plus className="h-4 w-4" />} onClick={() => onChange([...lines, newLine()])}>
+        <Button variant="secondary" size="sm" className="mt-3" icon={<PlusIcon className="h-4 w-4" />} onClick={() => onChange([...lines, newLine()])}>
           Add line
         </Button>
       )}

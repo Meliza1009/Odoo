@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { api, errorMessage } from '../../api/client'
@@ -32,7 +32,7 @@ const columns: Column<Plan>[] = [
   },
   { key: 'price', header: 'Price', render: (p) => `${formatMoney(p.price)} ${perInterval(p.billingInterval)}`, className: 'whitespace-nowrap tabular-nums' },
   { key: 'min', header: 'Min qty', render: (p) => p.minQuantity, className: 'text-right', hideOnMobile: true },
-  { key: 'window', header: 'Available', render: (p) => (p.startDate || p.endDate ? `${formatDate(p.startDate)} – ${formatDate(p.endDate)}` : 'Always'), hideOnMobile: true },
+  { key: 'window', header: 'Available', render: (p) => (p.startDate || p.endDate ? `${formatDate(p.startDate)} - ${formatDate(p.endDate)}` : 'Always'), hideOnMobile: true },
   { key: 'rules', header: 'Rules', render: flagBadges, hideOnMobile: true },
   { key: 'status', header: 'Status', render: (p) => <StatusBadge status={p.isActive ? 'active' : 'inactive'} />, hideOnMobile: true },
 ]
@@ -52,7 +52,7 @@ export function PlansPage() {
         description="Billing intervals, pricing and lifecycle rules for subscriptions."
         actions={
           isAdmin && (
-            <Button icon={<Plus className="h-4 w-4" />} onClick={() => setModal({ plan: null })}>
+            <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setModal({ plan: null })}>
               New plan
             </Button>
           )

@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { api, errorMessage } from '../../api/client'
@@ -42,7 +42,7 @@ const columns: Column<Discount>[] = [
       [d.minPurchase > 0 && `Min ${formatMoney(d.minPurchase)}`, d.minQuantity > 0 && `Min qty ${d.minQuantity}`].filter(Boolean).join(' · ') || 'None',
     hideOnMobile: true,
   },
-  { key: 'dates', header: 'Valid', render: (d) => (d.startDate || d.endDate ? `${formatDate(d.startDate)} – ${formatDate(d.endDate)}` : 'Always'), hideOnMobile: true },
+  { key: 'dates', header: 'Valid', render: (d) => (d.startDate || d.endDate ? `${formatDate(d.startDate)} - ${formatDate(d.endDate)}` : 'Always'), hideOnMobile: true },
   { key: 'usage', header: 'Used', render: (d) => `${d.usageCount}${d.usageLimit ? ` / ${d.usageLimit}` : ''}`, className: 'text-right tabular-nums' },
   { key: 'state', header: 'State', render: (d) => <StatusBadge status={d.state} /> },
 ]
@@ -58,7 +58,7 @@ export function DiscountsPage() {
         title="Discounts"
         description="Applied automatically on every invoice while valid, until they expire or reach their usage limit."
         actions={
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setModal({ discount: null })}>
+          <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setModal({ discount: null })}>
             New discount
           </Button>
         }

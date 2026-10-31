@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarPlus, CheckCircle2, Pause, Pencil, Play, Receipt, Send, Undo2, XCircle } from 'lucide-react'
+import { ArrowLeftIcon, ArrowUUpLeftIcon, CalendarPlusIcon, CheckCircleIcon, PaperPlaneTiltIcon, PauseIcon, PencilSimpleIcon, PlayIcon, ReceiptIcon, XCircleIcon } from '@phosphor-icons/react'
 import { useCallback, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, errorMessage } from '../../api/client'
@@ -86,17 +86,17 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
   const actions: ReactNode[] = []
   if (!portal) {
     if (sub.status === 'draft' || sub.status === 'quotation')
-      actions.push(<Button key="edit" variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => navigate(`/app/subscriptions/${sub.id}/edit`)}>Edit</Button>)
-    if (can('draft')) actions.push(<Button key="draft" variant="secondary" icon={<Undo2 className="h-4 w-4" />} loading={busy === 'draft'} onClick={() => move('draft', 'Moved back to draft')}>Back to draft</Button>)
-    if (can('quotation')) actions.push(<Button key="send" icon={<Send className="h-4 w-4" />} loading={busy === 'quotation'} onClick={() => move('quotation', 'Quotation marked as sent')}>Send quotation</Button>)
+      actions.push(<Button key="edit" variant="secondary" icon={<PencilSimpleIcon className="h-4 w-4" />} onClick={() => navigate(`/app/subscriptions/${sub.id}/edit`)}>Edit</Button>)
+    if (can('draft')) actions.push(<Button key="draft" variant="secondary" icon={<ArrowUUpLeftIcon className="h-4 w-4" />} loading={busy === 'draft'} onClick={() => move('draft', 'Moved back to draft')}>Back to draft</Button>)
+    if (can('quotation')) actions.push(<Button key="send" icon={<PaperPlaneTiltIcon className="h-4 w-4" />} loading={busy === 'quotation'} onClick={() => move('quotation', 'Quotation marked as sent')}>Send quotation</Button>)
     if (can('confirmed'))
-      actions.push(<Button key="confirm" icon={<CheckCircle2 className="h-4 w-4" />} loading={busy === 'confirmed'} disabled={quotationExpired} onClick={() => move('confirmed', 'Quotation confirmed')}>Confirm order</Button>)
-    if (sub.status === 'confirmed') actions.push(<Button key="activate" variant="accent" icon={<Play className="h-4 w-4" />} loading={busy === 'active'} onClick={() => move('active', 'Subscription activated')}>Activate</Button>)
-    if (billingDue) actions.push(<Button key="invoice" variant="accent" icon={<Receipt className="h-4 w-4" />} loading={busy === 'invoice'} onClick={generateInvoice}>Generate invoice</Button>)
-    if (sub.status === 'paused') actions.push(<Button key="resume" variant="accent" icon={<Play className="h-4 w-4" />} loading={busy === 'resume'} onClick={() => run('resume', () => api.post(`/subscriptions/${sub.id}/resume`), 'Subscription resumed')}>Resume</Button>)
-    if (can('paused') && sub.plan.canPause) actions.push(<Button key="pause" variant="secondary" icon={<Pause className="h-4 w-4" />} onClick={() => setDialog('pause')}>Pause</Button>)
-    if (canRenew) actions.push(<Button key="renew" variant="secondary" icon={<CalendarPlus className="h-4 w-4" />} onClick={() => setDialog('renew')}>Renew</Button>)
-    if (canClose) actions.push(<Button key="close" variant="secondary" icon={<XCircle className="h-4 w-4" />} onClick={() => setDialog('close')}>{closingEarly ? 'Close early' : 'Close'}</Button>)
+      actions.push(<Button key="confirm" icon={<CheckCircleIcon className="h-4 w-4" />} loading={busy === 'confirmed'} disabled={quotationExpired} onClick={() => move('confirmed', 'Quotation confirmed')}>Confirm order</Button>)
+    if (sub.status === 'confirmed') actions.push(<Button key="activate" variant="accent" icon={<PlayIcon className="h-4 w-4" />} loading={busy === 'active'} onClick={() => move('active', 'Subscription activated')}>Activate</Button>)
+    if (billingDue) actions.push(<Button key="invoice" variant="accent" icon={<ReceiptIcon className="h-4 w-4" />} loading={busy === 'invoice'} onClick={generateInvoice}>Generate invoice</Button>)
+    if (sub.status === 'paused') actions.push(<Button key="resume" variant="accent" icon={<PlayIcon className="h-4 w-4" />} loading={busy === 'resume'} onClick={() => run('resume', () => api.post(`/subscriptions/${sub.id}/resume`), 'Subscription resumed')}>Resume</Button>)
+    if (can('paused') && sub.plan.canPause) actions.push(<Button key="pause" variant="secondary" icon={<PauseIcon className="h-4 w-4" />} onClick={() => setDialog('pause')}>Pause</Button>)
+    if (canRenew) actions.push(<Button key="renew" variant="secondary" icon={<CalendarPlusIcon className="h-4 w-4" />} onClick={() => setDialog('renew')}>Renew</Button>)
+    if (canClose) actions.push(<Button key="close" variant="secondary" icon={<XCircleIcon className="h-4 w-4" />} onClick={() => setDialog('close')}>{closingEarly ? 'Close early' : 'Close'}</Button>)
     if (can('cancelled')) actions.push(<Button key="cancel" variant="ghost" className="text-danger" onClick={() => setDialog('cancel')}>Cancel</Button>)
   }
 
@@ -107,7 +107,7 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
   return (
     <>
       <Link to={back.to} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-ink">
-        <ArrowLeft className="h-4 w-4" /> {back.label}
+        <ArrowLeftIcon className="h-4 w-4" /> {back.label}
       </Link>
       <PageHeader
         title={sub.subscriptionNumber}
@@ -164,7 +164,7 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
             <DataTable
               columns={[
                 { key: 'number', header: 'Invoice', render: (i) => <span className="font-medium text-primary">{i.invoiceNumber}</span> },
-                { key: 'period', header: 'Period', render: (i) => `${formatDate(i.billingPeriodStart)} – ${formatDate(i.billingPeriodEnd)}`, hideOnMobile: true },
+                { key: 'period', header: 'Period', render: (i) => `${formatDate(i.billingPeriodStart)} - ${formatDate(i.billingPeriodEnd)}`, hideOnMobile: true },
                 { key: 'status', header: 'Status', render: (i) => <StatusBadge status={i.isOverdue ? 'overdue' : i.status} /> },
                 { key: 'total', header: 'Total', render: (i) => formatMoney(i.grandTotal), className: 'text-right tabular-nums' },
                 { key: 'due', header: 'Due', render: (i) => formatMoney(i.amountDue), className: 'text-right tabular-nums', hideOnMobile: true },
@@ -181,7 +181,7 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
         <div className="space-y-6">
           <Card className="p-5">
             <h2 className="mb-4 font-semibold text-ink">Details</h2>
-            <DetailList
+            <DetailList columns={1}
               items={[
                 { label: 'Customer', value: portal ? sub.customerName : <Link className="text-accent-dark hover:underline" to={`/app/customers/${sub.customerId}`}>{sub.customerName}</Link> },
                 { label: 'Plan', value: `${sub.planName}${planLine ? ` · ${formatMoney(planLine.unitPrice)}` : ''} ${perInterval(sub.billingInterval)}` },
@@ -262,7 +262,7 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
 function Rule({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
     <li className={`flex items-center gap-2 ${ok ? '' : 'text-slate-400 line-through'}`}>
-      {ok ? <CheckCircle2 className="h-3.5 w-3.5 text-success" /> : <XCircle className="h-3.5 w-3.5" />}
+      {ok ? <CheckCircleIcon className="h-3.5 w-3.5 text-success" /> : <XCircleIcon className="h-3.5 w-3.5" />}
       {children}
     </li>
   )

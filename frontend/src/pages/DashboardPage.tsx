@@ -1,11 +1,11 @@
-import { AlertTriangle, ArrowRight, Banknote, Plus, Receipt, RefreshCcw, TrendingUp } from 'lucide-react'
+import { ArrowRightIcon, PlusIcon, ReceiptIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api/client'
 import { useAuth } from '../auth/useAuth'
 import { RevenueChart } from '../components/charts'
 import { RunBillingDialog } from '../components/RunBillingDialog'
-import { Button, Card, CardHeader, DataTable, ErrorState, LoadingState, PageHeader, StatCard, type Column } from '../components/ui'
+import { Button, Card, CardHeader, DataTable, ErrorState, LoadingState, MetricStrip, PageHeader, type Column } from '../components/ui'
 import { useAsync } from '../hooks/useAsync'
 import { formatDate, formatMoney } from '../lib/format'
 import type { InvoiceRow, PagedWithSummary, ReportSummary, RevenueReport } from '../types'
@@ -54,10 +54,10 @@ export function DashboardPage() {
       description="Subscriptions, recurring revenue and collections at a glance."
       actions={
         <>
-          <Button variant="secondary" icon={<Receipt className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
+          <Button variant="secondary" icon={<ReceiptIcon className="h-4 w-4" />} onClick={() => setBillingOpen(true)}>
             Run billing
           </Button>
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new')}>
+          <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new')}>
             New quotation
           </Button>
         </>
@@ -85,26 +85,34 @@ export function DashboardPage() {
   return (
     <>
       {header}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active subscriptions" value={summary.activeSubscriptions} hint={`${summary.pausedSubscriptions} paused`} icon={<RefreshCcw className="h-5 w-5" />} />
-        <StatCard label="Monthly recurring revenue" value={formatMoney(summary.mrr)} hint={`ARR ${formatMoney(summary.arr)}`} icon={<TrendingUp className="h-5 w-5" />} />
-        <StatCard label="Collected this month" value={formatMoney(summary.revenueCollected)} hint={`${summary.paymentCount} payments`} icon={<Banknote className="h-5 w-5" />} />
-        <StatCard label="Overdue balance" value={formatMoney(summary.overdueBalance)} hint={`${summary.overdueCount} invoices past due`} icon={<AlertTriangle className="h-5 w-5" />} />
-      </div>
+      <MetricStrip
+        items={[
+          { label: 'Monthly recurring revenue', value: formatMoney(summary.mrr), hint: `ARR ${formatMoney(summary.arr)}` },
+          { label: 'Active subscriptions', value: summary.activeSubscriptions, hint: `${summary.pausedSubscriptions} paused` },
+          { label: 'Collected this month', value: formatMoney(summary.revenueCollected), hint: `${summary.paymentCount} payments` },
+          {
+            label: 'Overdue balance',
+            value: <span className={summary.overdueBalance > 0 ? 'text-danger' : ''}>{formatMoney(summary.overdueBalance)}</span>,
+            hint: `${summary.overdueCount} invoices past due`,
+          },
+        ]}
+      />
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 flex flex-wrap gap-2">
         {secondary.map((item) => (
-          <Link key={item.label} to={item.to} className="group flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 hover:border-accent">
-            <div>
-              <p className="text-xs text-slate-500">{item.label}</p>
-              <p className="font-semibold text-primary">{item.value}</p>
-            </div>
-            <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-accent-dark" />
+          <Link
+            key={item.label}
+            to={item.to}
+            className="group inline-flex items-center gap-2 rounded-control bg-surface px-3 py-2 text-[13px] shadow-xs ring-1 ring-slate-900/[0.07] transition duration-200 ease-soft hover:ring-slate-900/15"
+          >
+            <span className="text-muted">{item.label}</span>
+            <span className="font-semibold text-ink tabular-nums">{item.value}</span>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-slate-300 transition-transform duration-200 ease-soft group-hover:translate-x-0.5 group-hover:text-accent-dark" />
           </Link>
         ))}
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-5">
+      <div className="mt-6 grid items-start gap-6 xl:grid-cols-5">
         <Card className="xl:col-span-3">
           <CardHeader title="Revenue, last 12 months" actions={<Link to="/app/reports" className="text-sm font-medium text-accent-dark hover:underline">Reports</Link>} />
           <div className="p-4">

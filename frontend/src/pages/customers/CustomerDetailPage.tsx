@@ -1,4 +1,4 @@
-import { ArrowLeft, KeyRound, Pencil, Plus, UserX } from 'lucide-react'
+import { ArrowLeftIcon, KeyIcon, PencilSimpleIcon, PlusIcon, UserMinusIcon } from '@phosphor-icons/react'
 import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -59,28 +59,28 @@ export function CustomerDetailPage() {
   return (
     <>
       <Link to="/app/customers" className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-ink">
-        <ArrowLeft className="h-4 w-4" /> Customers
+        <ArrowLeftIcon className="h-4 w-4" /> Customers
       </Link>
       <PageHeader
         title={customer.companyName}
         description={customer.contactName ?? undefined}
         actions={
           <>
-            <Button variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => setEditing(true)}>
+            <Button variant="secondary" icon={<PencilSimpleIcon className="h-4 w-4" />} onClick={() => setEditing(true)}>
               Edit
             </Button>
             {isAdmin && (
-              <Button variant="secondary" icon={<KeyRound className="h-4 w-4" />} onClick={() => setGranting(true)}>
+              <Button variant="secondary" icon={<KeyIcon className="h-4 w-4" />} onClick={() => setGranting(true)}>
                 {customer.userId ? 'Reset portal password' : 'Give portal access'}
               </Button>
             )}
             {isAdmin && customer.isActive && (
-              <Button variant="secondary" icon={<UserX className="h-4 w-4" />} onClick={() => setDeactivating(true)}>
+              <Button variant="secondary" icon={<UserMinusIcon className="h-4 w-4" />} onClick={() => setDeactivating(true)}>
                 Deactivate
               </Button>
             )}
             {customer.isActive && (
-              <Button icon={<Plus className="h-4 w-4" />} onClick={() => navigate(`/app/subscriptions/new?customerId=${customer.id}`)}>
+              <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => navigate(`/app/subscriptions/new?customerId=${customer.id}`)}>
                 New quotation
               </Button>
             )}
@@ -104,7 +104,7 @@ export function CustomerDetailPage() {
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-1">
           <h2 className="mb-4 font-semibold text-ink">Details</h2>
-          <DetailList
+          <DetailList columns={1}
             items={[
               { label: 'Email', value: customer.email },
               { label: 'Phone', value: customer.phone },
