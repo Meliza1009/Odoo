@@ -247,8 +247,8 @@ describe('lifecycle state machine', () => {
 });
 
 describe('pause, resume, renew and close early', () => {
-  it('pauses and resumes; billing restarts from today', async () => {
-    const id = await activeSubscription({ startDate: addDays(today, -40), expiryDate: addDays(today, 200) });
+  it('pauses and resumes on the original billing schedule', async () => {
+    const id = await activeSubscription({ startDate: addInterval(today, 'monthly', -2), expiryDate: addDays(today, 200) });
     const paused = await api().post(`/api/subscriptions/${id}/pause`).set(staff.auth).send({});
     expect(paused.body.status).toBe('paused');
     expect(paused.body.pausedAt).toBeTruthy();
@@ -292,7 +292,7 @@ describe('pause, resume, renew and close early', () => {
   it('auto-closes expired subscriptions on auto-close plans, and renewal re-opens them', async () => {
     const autoPlan = await createPlan({ name: 'Auto Monthly', billingInterval: 'monthly', price: 100, autoCloseOnExpiry: true });
     const manualId = await activeSubscription({ startDate: addDays(today, -60), expiryDate: addDays(today, 10) });
-    const autoId = await activeSubscription({ planId: autoPlan, startDate: addDays(today, -60), expiryDate: addDays(today, 10) });
+    const autoId = await activeSubscription({ planId: autoPlan, startDate: addInterval(`${today.slice(0, 7)}-01`, 'monthly', -2), expiryDate: addDays(today, 10) });
     await pool.query('UPDATE subscriptions SET expiry_date = $2 WHERE id = ANY($1::int[])', [[manualId, autoId], addDays(today, -1)]);
 
     const run = await api().post('/api/subscriptions/close-expired').set(admin.auth);
@@ -304,7 +304,7 @@ describe('pause, resume, renew and close early', () => {
     expect((await api().get(`/api/subscriptions/${manualId}`).set(staff.auth)).body.status).toBe('active');
 
     const renewed = await api().post(`/api/subscriptions/${autoId}/renew`).set(staff.auth).send({ periods: 1 });
-    expect(renewed.body).toMatchObject({ status: 'active', closeReason: null, nextBillingDate: today, expiryDate: addInterval(addDays(today, -1), 'monthly', 1) });
+    expect(renewed.body).toMatchObject({ status: 'active', closeReason: null, nextBillingDate: addInterval(`${addDays(today, -1).slice(0, 7)}-01`, 'monthly', 1), expiryDate: addInterval(addDays(today, -1), 'monthly', 1) });
   });
 });
 

@@ -13,11 +13,12 @@ Subscription management for customers, quotations, recurring billing, invoices, 
 - **Billing:** generate invoices for due subscription periods with taxes and eligible discounts. Previously billed periods are skipped to prevent duplicate billing.
 - **Payments:** record payments, track partial balances, and download printable invoices.
 - **Reporting:** monthly recurring revenue (MRR), annual recurring revenue (ARR), collections, and overdue balances.
-- **Customer portal:** available plans and products, personal subscriptions, invoices, payment history, and discounts applied to issued invoices.
+- **Customer portal:** available plans and products, personal subscriptions, invoices, payment history, and applied discounts. Customers can pause, resume, renew, and close their own subscriptions where the plan allows.
+- **Active add-ons:** assigned staff and admins can change add-ons on active or paused subscriptions. Existing invoices and base contract prices stay fixed; due periods are invoiced at the old price before changes apply to future invoices.
 - **Notifications:** account-scoped invoice reminders, quotations, and upcoming subscription expiries, with saved read status.
 - **Authentication:** JWT sessions, password reset, and server-enforced role and customer access checks.
 
-Invoice generation is triggered through **Run billing** or the billing API. Subscription expiry processing runs automatically at startup and hourly; there is no scheduled invoice-generation job configured by default.
+Regular invoice generation is triggered through **Run billing** or the billing API. Subscription expiry processing runs at startup and hourly, invoices remaining due periods, and then closes the subscription. Paused intervals are excluded. Renewal restores stopped billing on the original schedule without repeating billed cycles. There is no general scheduled billing run configured by default.
 
 This README describes the current source tree. The live demo reflects the latest deployed Git commit; local changes appear there after they are committed, pushed, and deployed.
 
@@ -27,7 +28,7 @@ This README describes the current source tree. The live demo reflects the latest
 | --- | --- |
 | **Admin** | Company dashboard and finance reports; customer creation and staff assignment; catalog, staff, tax and discount management; company billing runs. |
 | **Staff** | Operational dashboard and access to assigned customers, their quotations, subscriptions, invoices, and payments. Company revenue reports and customer creation are restricted to admins. |
-| **Customer** | Their own account and billing records, available plans/products, personal discounts, and notifications. |
+| **Customer** | Their own account and billing records, available plans/products, personal discounts, notifications, and plan-permitted pause/resume/renew/close actions. |
 
 Assign a customer through **Admin → Customers → select customer → Edit → Assigned staff**. Existing unassigned customers remain accessible to admins until assigned.
 

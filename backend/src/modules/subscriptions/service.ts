@@ -3,9 +3,10 @@ import type { z } from 'zod';
 import { pool, query, withTransaction, type DbClient } from '../../db/pool.js';
 import { assertCustomerAccess, customerScope } from '../../lib/customer-access.js';
 import { logAudit } from '../../lib/audit.js';
-import { addDays, addInterval, maxDate, todayIso } from '../../lib/dates.js';
+import { addDays, addInterval, maxDate, nextAnchoredDate, todayIso } from '../../lib/dates.js';
 import { badRequest, conflict, forbidden, notFound } from '../../lib/errors.js';
 import type { AuthUser } from '../../middleware/auth.js';
+import { billSubscriptionInTransaction } from '../billing/engine.js';
 import { getPlan, type Plan } from '../plans/routes.js';
 import { getTemplate } from '../quotation-templates/routes.js';
 import { buildLines, saveLines, type LineInput } from './lines.js';
@@ -134,12 +135,19 @@ export async function getSubscription(id: number, user: AuthUser, client: DbClie
   // Sequential on purpose: `client` may be a single transaction connection, which cannot run queries in parallel.
   const lines = await query(
     `SELECT l.id, l.line_type AS "lineType", l.product_id AS "productId", l.variant_id AS "variantId", l.description,
-            l.quantity, l.unit_price AS "unitPrice", l.tax_rate AS "taxRate", l.subtotal, l.tax_amount AS "taxAmount", l.total
-       FROM subscription_lines l WHERE l.subscription_id = $1 ORDER BY l.sort_order, l.id`,
+            l.quantity, l.unit_price AS "unitPrice", l.tax_rate AS "taxRate", l.subtotal, l.tax_amount AS "taxAmount", l.total, p.type AS "productType"
+       FROM subscription_lines l LEFT JOIN products p ON p.id = l.product_id WHERE l.subscription_id = $1 ORDER BY l.sort_order, l.id`,
     [id],
     client,
   );
   const plan = await getPlan(row.planId, client);
+  const allowedTransitions = TRANSITIONS[row.status].filter((to) => {
+    if (user.role === 'customer' && !(['active', 'paused'].includes(row.status) && (to === 'paused' || to === 'closed' || (row.status === 'paused' && to === 'active')))) return false;
+    if ((to === 'paused' || (row.status === 'paused' && to === 'active')) && !plan.canPause) return false;
+    if (row.status === 'paused' && to === 'active' && row.expiryDate && row.expiryDate < todayIso()) return false;
+    if (to === 'closed' && (!row.expiryDate || todayIso() < row.expiryDate) && !plan.canCloseEarly) return false;
+    return true;
+  });
   const history = isInternal(user)
     ? await query(
         `SELECT a.id, a.action, a.details, a.created_at AS "createdAt", u.full_name AS "actorName"
@@ -165,7 +173,7 @@ export async function getSubscription(id: number, user: AuthUser, client: DbClie
     },
     lines: lines.rows,
     history: history.rows,
-    allowedTransitions: TRANSITIONS[row.status],
+    allowedTransitions,
   };
 }
 
@@ -265,12 +273,36 @@ async function lineCount(client: pg.PoolClient, id: number) {
   return rows[0].n;
 }
 
+/** Last day whose period can be due; paused time itself is never billed. */
+function billingCutoff(status: SubscriptionStatus, expiryDate: string | null, pausedDate: string | null, today: string) {
+  const through = expiryDate && expiryDate < today ? expiryDate : today;
+  if (status !== 'paused') return through;
+  if (!pausedDate) return null;
+  const beforePause = addDays(pausedDate, -1);
+  return beforePause < through ? beforePause : through;
+}
+
+async function invoiceBeforeAction(client: pg.PoolClient, sub: SubscriptionRow, today: string, actorId: number, action: string) {
+  await billSubscriptionInTransaction(client, sub.id, today, { actorId, includePausedBeforePause: true });
+  const { rows } = await client.query<{ next: string | null; pausedDate: string | null }>(
+    'SELECT next_billing_date AS next, paused_at::date AS "pausedDate" FROM subscriptions WHERE id = $1', [sub.id],
+  );
+  const through = billingCutoff(sub.status, sub.expiryDate, rows[0].pausedDate, today);
+  if (through && rows[0].next && rows[0].next <= through) {
+    throw conflict(`Run billing to finish the overdue periods before ${action} this subscription`);
+  }
+  return rows[0].next;
+}
+
 /** Central state machine: validates the move, applies plan rules and side effects, and records history. */
 export async function transition(id: number, to: SubscriptionStatus, actor: AuthUser, reason: string | null = null) {
   return withTransaction(async (client) => {
     const sub = await findSubscription(id, client, true);
     await assertCanView(actor, sub, client);
     const from = sub.status;
+    if (actor.role === 'customer' && !(['active', 'paused'].includes(from) && (to === 'paused' || to === 'closed' || (from === 'paused' && to === 'active')))) {
+      throw forbidden('Customers can only pause, resume or close their own subscriptions');
+    }
     if (!TRANSITIONS[from].includes(to)) throw conflict(`Cannot change a ${from} subscription to ${to}`);
     const plan = await getPlan(sub.planId, client);
     const today = todayIso();
@@ -294,15 +326,19 @@ export async function transition(id: number, to: SubscriptionStatus, actor: Auth
       sets.push('activated_at = now()');
       set('next_billing_date', sub.nextBillingDate ?? sub.startDate);
     } else if (to === 'active' && from === 'paused') {
-      // Resume: nothing is billed for the paused period, billing restarts from today at the earliest.
+      if (!plan.canPause) throw conflict(`Plan "${plan.name}" does not allow resuming`);
+      if (sub.expiryDate && sub.expiryDate < today) throw conflict('This subscription has expired. Renew it before resuming.');
+      // Preserve pre-pause arrears, then restart on the next original anchor without charging the paused cycle again.
+      const next = await invoiceBeforeAction(client, sub, today, actor.id, 'resuming');
       sets.push('paused_at = NULL');
-      set('next_billing_date', maxDate(sub.nextBillingDate ?? today, today));
+      set('next_billing_date', nextAnchoredDate(sub.startDate, addDays(maxDate(next ?? today, today), -1), plan.billingInterval));
     } else if (to === 'paused') {
       if (!plan.canPause) throw conflict(`Plan "${plan.name}" does not allow pausing`);
       sets.push('paused_at = now()');
     } else if (to === 'closed') {
       const early = !sub.expiryDate || today < sub.expiryDate;
       if (early && !plan.canCloseEarly) throw conflict(`Plan "${plan.name}" does not allow closing before the expiry date`);
+      await invoiceBeforeAction(client, sub, today, actor.id, 'closing');
       sets.push('closed_at = now()', 'next_billing_date = NULL', 'paused_at = NULL');
       set('close_reason', reason ?? (early ? 'closed_early' : 'completed'));
     } else if (to === 'cancelled') {
@@ -329,15 +365,23 @@ export async function renew(id: number, periods: number, actor: AuthUser) {
     if (!sub.expiryDate) throw badRequest('This subscription has no expiry date, so there is nothing to renew');
 
     const newExpiry = addInterval(sub.expiryDate, plan.billingInterval, periods);
-    const today = todayIso();
+    let nextBillingDate = sub.nextBillingDate;
+    if (!nextBillingDate || reopen) {
+      const { rows } = await client.query<{ start: string | null }>('SELECT max(billing_period_start) AS start FROM invoices WHERE subscription_id = $1', [id]);
+      // A truncated final invoice still charged the full cycle price. Resume on the next original
+      // anchor, not the following day, so renewal cannot charge that same cycle a second time.
+      nextBillingDate = rows[0].start ? nextAnchoredDate(sub.startDate, rows[0].start, plan.billingInterval) : sub.startDate;
+      if (reopen && sub.pausedAt) nextBillingDate = maxDate(nextBillingDate, nextAnchoredDate(sub.startDate, sub.expiryDate, plan.billingInterval));
+      if (nextBillingDate > newExpiry) nextBillingDate = null;
+    }
     if (reopen) {
       await client.query(
         `UPDATE subscriptions SET status = 'active', expiry_date = $2, closed_at = NULL, close_reason = NULL,
-                next_billing_date = $3, updated_at = now() WHERE id = $1`,
-        [id, newExpiry, today],
+                next_billing_date = $3, paused_at = NULL, updated_at = now() WHERE id = $1`,
+        [id, newExpiry, nextBillingDate],
       );
     } else {
-      await client.query('UPDATE subscriptions SET expiry_date = $2, updated_at = now() WHERE id = $1', [id, newExpiry]);
+      await client.query('UPDATE subscriptions SET expiry_date = $2, next_billing_date = $3, updated_at = now() WHERE id = $1', [id, newExpiry, nextBillingDate]);
     }
     await logAudit(actor.id, 'subscription.renewed', 'subscription', id, { periods, from: sub.expiryDate, to: newExpiry, reopened: reopen }, client);
     return getSubscription(id, actor, client);
@@ -347,19 +391,29 @@ export async function renew(id: number, periods: number, actor: AuthUser) {
 /** Closes active/paused subscriptions past their expiry date whose plan has auto-close enabled. */
 export async function closeExpiredSubscriptions(today = todayIso(), actorId: number | null = null) {
   return withTransaction(async (client) => {
-    const { rows } = await client.query<{ id: number; subscriptionNumber: string }>(
-      `UPDATE subscriptions s
-          SET status = 'closed', closed_at = now(), close_reason = 'expired', next_billing_date = NULL, paused_at = NULL, updated_at = now()
-         FROM plans pl
-        WHERE pl.id = s.plan_id AND pl.auto_close_on_expiry
-          AND s.status IN ('active', 'paused') AND s.expiry_date IS NOT NULL AND s.expiry_date < $1
-        RETURNING s.id, s.subscription_number AS "subscriptionNumber"`,
+    const { rows } = await client.query<{ id: number; subscriptionNumber: string; status: SubscriptionStatus; expiryDate: string; pausedDate: string | null }>(
+      `SELECT s.id, s.subscription_number AS "subscriptionNumber", s.status, s.expiry_date AS "expiryDate", s.paused_at::date AS "pausedDate"
+         FROM subscriptions s JOIN plans pl ON pl.id = s.plan_id
+        WHERE pl.auto_close_on_expiry AND s.status IN ('active', 'paused')
+          AND s.expiry_date IS NOT NULL AND s.expiry_date < $1
+        ORDER BY s.id FOR UPDATE OF s`,
       [today],
     );
+    const closed: { id: number; subscriptionNumber: string }[] = [];
     for (const row of rows) {
+      // Invoice and close under the same lock/transaction: a failed billing attempt must never discard its cursor.
+      await billSubscriptionInTransaction(client, row.id, today, { actorId, includePausedBeforePause: true });
+      const remaining = await client.query<{ nextBillingDate: string | null }>('SELECT next_billing_date AS "nextBillingDate" FROM subscriptions WHERE id = $1', [row.id]);
+      const next = remaining.rows[0].nextBillingDate;
+      // A capped catch-up run leaves the subscription open so the next job can finish its backlog.
+      const throughDate = billingCutoff(row.status, row.expiryDate, row.pausedDate, today);
+      if (throughDate && next && next <= throughDate) continue;
+      await client.query(`UPDATE subscriptions SET status = 'closed', closed_at = now(), close_reason = 'expired',
+                           next_billing_date = NULL, paused_at = CASE WHEN $2 THEN paused_at ELSE NULL END, updated_at = now() WHERE id = $1`, [row.id, row.status === 'paused']);
       await logAudit(actorId, 'subscription.auto_closed', 'subscription', row.id, { reason: 'expired', date: today }, client);
+      closed.push({ id: row.id, subscriptionNumber: row.subscriptionNumber });
     }
-    return rows;
+    return closed;
   });
 }
 

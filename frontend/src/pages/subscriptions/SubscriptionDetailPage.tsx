@@ -23,10 +23,11 @@ import {
 import { useAsync } from '../../hooks/useAsync'
 import { formatDate, formatDateTime, formatMoney, formatPercent, perInterval, titleCase, todayIso } from '../../lib/format'
 import type { InvoiceRow, Paged, SubscriptionDetail, SubscriptionStatus } from '../../types'
+import { SubscriptionAddonsModal } from './SubscriptionAddonsModal'
 
 type DialogKind = 'pause' | 'close' | 'cancel' | 'renew'
 
-/** Staff view (actions + history) at /app/subscriptions/:id; read-only portal view at /portal/subscriptions/:id. */
+/** Internal subscription management and customer self-service, both using the same plan rules. */
 export function SubscriptionDetailPage({ portal = false }: { portal?: boolean }) {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -42,6 +43,7 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
   const { data, error, loading, reload, setData } = useAsync(load)
   const [busy, setBusy] = useState<string | null>(null)
   const [dialog, setDialog] = useState<DialogKind | null>(null)
+  const [managingAddons, setManagingAddons] = useState(false)
 
   if (!data) return loading ? <LoadingState /> : <ErrorState description={error ?? undefined} action={<Button variant="secondary" onClick={() => navigate(`${base}/subscriptions`)}>Back</Button>} />
   const { sub, invoices } = data
@@ -93,12 +95,13 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
       actions.push(<Button key="confirm" icon={<CheckCircleIcon className="h-4 w-4" />} loading={busy === 'confirmed'} disabled={quotationExpired} onClick={() => move('confirmed', 'Quotation confirmed')}>Confirm order</Button>)
     if (sub.status === 'confirmed') actions.push(<Button key="activate" variant="accent" icon={<PlayIcon className="h-4 w-4" />} loading={busy === 'active'} onClick={() => move('active', 'Subscription activated')}>Activate</Button>)
     if (billingDue) actions.push(<Button key="invoice" variant="accent" icon={<ReceiptIcon className="h-4 w-4" />} loading={busy === 'invoice'} onClick={generateInvoice}>Generate invoice</Button>)
-    if (sub.status === 'paused') actions.push(<Button key="resume" variant="accent" icon={<PlayIcon className="h-4 w-4" />} loading={busy === 'resume'} onClick={() => run('resume', () => api.post(`/subscriptions/${sub.id}/resume`), 'Subscription resumed')}>Resume</Button>)
-    if (can('paused') && sub.plan.canPause) actions.push(<Button key="pause" variant="secondary" icon={<PauseIcon className="h-4 w-4" />} onClick={() => setDialog('pause')}>Pause</Button>)
-    if (canRenew) actions.push(<Button key="renew" variant="secondary" icon={<CalendarPlusIcon className="h-4 w-4" />} onClick={() => setDialog('renew')}>Renew</Button>)
-    if (canClose) actions.push(<Button key="close" variant="secondary" icon={<XCircleIcon className="h-4 w-4" />} onClick={() => setDialog('close')}>{closingEarly ? 'Close early' : 'Close'}</Button>)
+    if (['active', 'paused'].includes(sub.status)) actions.push(<Button key="addons" variant="secondary" icon={<PencilSimpleIcon className="h-4 w-4" />} disabled={!!busy || loading} onClick={() => setManagingAddons(true)}>Manage add-ons</Button>)
     if (can('cancelled')) actions.push(<Button key="cancel" variant="ghost" className="text-danger" onClick={() => setDialog('cancel')}>Cancel</Button>)
   }
+  if (sub.status === 'paused' && can('active') && sub.plan.canPause) actions.push(<Button key="resume" variant="accent" icon={<PlayIcon className="h-4 w-4" />} loading={busy === 'resume'} disabled={!!busy} onClick={() => run('resume', () => api.post(`/subscriptions/${sub.id}/resume`), 'Subscription resumed')}>Resume</Button>)
+  if (sub.status === 'active' && can('paused') && sub.plan.canPause) actions.push(<Button key="pause" variant="secondary" icon={<PauseIcon className="h-4 w-4" />} disabled={!!busy} onClick={() => setDialog('pause')}>Pause</Button>)
+  if (canRenew) actions.push(<Button key="renew" variant="secondary" icon={<CalendarPlusIcon className="h-4 w-4" />} disabled={!!busy} onClick={() => setDialog('renew')}>Renew</Button>)
+  if (['active', 'paused'].includes(sub.status) && canClose) actions.push(<Button key="close" variant="secondary" icon={<XCircleIcon className="h-4 w-4" />} disabled={!!busy} onClick={() => setDialog('close')}>{closingEarly ? 'Close early' : 'Close'}</Button>)
 
   const planLine = sub.lines.find((l) => l.lineType === 'plan')
   const isQuote = sub.status === 'draft' || sub.status === 'quotation'
@@ -119,6 +122,12 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
         {sub.templateId && <Badge tone="indigo">From template</Badge>}
         {sub.closeReason && <Badge>{titleCase(sub.closeReason)}</Badge>}
       </div>
+
+      {portal && actions.length === 0 && (
+        <div className="mb-4">
+          <Alert tone="info">No self-service actions are available for this subscription right now. Contact your account team if you need help.</Alert>
+        </div>
+      )}
 
       {quotationExpired && !portal && (
         <div className="mb-4">
@@ -247,6 +256,8 @@ export function SubscriptionDetailPage({ portal = false }: { portal?: boolean })
         </div>
       </div>
 
+      {!portal && <SubscriptionAddonsModal open={managingAddons} subscription={sub} onClose={() => setManagingAddons(false)} onSaved={reload} />}
+
       {dialog && dialog !== 'renew' && (
         <ReasonDialog
           kind={dialog}
@@ -282,7 +293,7 @@ function Rule({ ok, children }: { ok: boolean; children: ReactNode }) {
 }
 
 const REASON_COPY = {
-  pause: { title: 'Pause subscription', text: 'Billing stops while paused. Nothing is charged for the paused period, and billing restarts from the day you resume.', confirm: 'Pause' },
+  pause: { title: 'Pause subscription', text: 'Billing stops while paused. Earlier due periods are still invoiced. When you resume, future billing continues on the next scheduled billing date.', confirm: 'Pause' },
   close: { title: 'Close subscription', text: 'Closing stops all future billing. Existing invoices stay as they are.', confirm: 'Close subscription' },
   cancel: { title: 'Cancel', text: 'This cannot be undone. A new quotation is needed to start again.', confirm: 'Cancel it' },
 }
@@ -338,7 +349,7 @@ function RenewDialog({ sub, busy, onClose, onConfirm }: { sub: SubscriptionDetai
       <div className="space-y-4">
         <p className="text-sm text-slate-600">
           Extends the expiry date (currently {formatDate(sub.expiryDate)}) by whole billing periods.
-          {sub.status === 'closed' && ' This subscription closed because it expired; renewing re-opens it and billing restarts today.'}
+          {sub.status === 'closed' && ' This subscription closed because it expired; renewing re-opens it.'} The original billing schedule is preserved, and any unbilled periods are picked up by the next billing run.
         </p>
         <Input
           label={`Periods (${sub.billingInterval})`}

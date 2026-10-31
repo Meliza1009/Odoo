@@ -161,6 +161,7 @@ export interface SubscriptionRow {
 }
 
 export interface SubscriptionLine {
+  productType?: ProductType | null
   id: number
   lineType: 'plan' | 'product'
   productId: number | null

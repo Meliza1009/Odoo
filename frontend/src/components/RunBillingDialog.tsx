@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, errorMessage } from '../api/client'
-import { todayIso } from '../lib/format'
+import { formatDate, todayIso } from '../lib/format'
 import type { BillingRunResult } from '../types'
 import { Alert, Button, Checkbox, Input, Modal, useToast } from './ui'
 
@@ -19,6 +19,7 @@ export function RunBillingDialog({ open, onClose, onDone }: { open: boolean; onC
       const { data } = await api.post<BillingRunResult>('/billing/run', { runDate, autoConfirm })
       const summary = `${data.invoicesCreated} invoice${data.invoicesCreated === 1 ? '' : 's'} created from ${data.subscriptionsChecked} due subscription${data.subscriptionsChecked === 1 ? '' : 's'}`
       if (data.errors.length) toast.error(`${summary}. ${data.errors.length} subscription(s) failed; see billing history in Settings.`)
+      else if (!data.subscriptionsChecked) toast.success(`No invoices are due for billing on ${formatDate(runDate)}.`)
       else toast.success(summary)
       onDone(data)
       onClose()
@@ -48,7 +49,7 @@ export function RunBillingDialog({ open, onClose, onDone }: { open: boolean; onC
     >
       <div className="space-y-4">
         <p className="text-sm text-slate-600">
-          Every active subscription whose next billing date is on or before the run date gets an invoice per due period, with taxes and discounts applied. Periods that were already billed
+          Subscriptions due on or before the run date get an invoice per due period, with taxes and discounts applied. Paused subscriptions are billed only for periods from before the pause. Periods that were already billed
           are skipped, so running this twice is safe.
         </p>
         {error && <Alert tone="error">{error}</Alert>}

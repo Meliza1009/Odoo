@@ -75,3 +75,8 @@ export const listSubscriptionsQuery = paginationSchema.extend({
   message: 'Closed to date must be on or after closed from date',
   path: ['closedTo'],
 });
+
+/** Add-on management cannot change contract prices, customer, plan, or base products. */
+export const updateAddonsInput = z.object({
+  lines: z.array(lineInput.pick({ productId: true, variantId: true, quantity: true }).strict()).max(50),
+}).strict();

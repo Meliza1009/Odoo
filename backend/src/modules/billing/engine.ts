@@ -15,6 +15,7 @@ interface DueSubscription {
   subscriptionNumber: string;
   customerId: number;
   status: string;
+  pausedDate: string | null;
   startDate: string;
   expiryDate: string | null;
   nextBillingDate: string | null;
@@ -53,13 +54,15 @@ export interface BillingOptions {
   autoConfirm?: boolean;
   runId?: number | null;
   actorId?: number | null;
+  /** Auto-expiry catch-up only: bill active days before a current pause, never the paused interval. */
+  includePausedBeforePause?: boolean;
 }
 
 async function loadSubscription(client: pg.PoolClient, id: number) {
   const { rows } = await client.query<DueSubscription>(
     `SELECT s.id, s.subscription_number AS "subscriptionNumber", s.customer_id AS "customerId", s.status,
             s.start_date AS "startDate", s.expiry_date AS "expiryDate", s.next_billing_date AS "nextBillingDate",
-            s.payment_terms_days AS "paymentTermsDays", pl.billing_interval AS "billingInterval",
+            s.payment_terms_days AS "paymentTermsDays", s.paused_at::date AS "pausedDate", pl.billing_interval AS "billingInterval",
             c.company_name AS "customerName", COALESCE(c.email, u.email) AS "customerEmail",
             c.billing_address AS "billingAddress", c.tax_number AS "taxNumber", c.region
        FROM subscriptions s
@@ -152,41 +155,66 @@ async function createPeriodInvoice(
  * Safe to call repeatedly: the UNIQUE(subscription_id, period_start, period_end) constraint means a period is never billed twice,
  * and next_billing_date only moves forward once a period is billed, so no period is skipped.
  */
-export async function billSubscription(subscriptionId: number, runDate = todayIso(), opts: BillingOptions = {}, taxRules?: TaxRule[]) {
-  return withTransaction(async (client): Promise<SubscriptionBillingResult> => {
-    const sub = await loadSubscription(client, subscriptionId);
-    if (!sub) throw notFound('Subscription not found');
-    const result: SubscriptionBillingResult = { subscriptionId, invoiceIds: [], periodsSkipped: 0 };
-    if (sub.status !== 'active' || !sub.nextBillingDate) return result;
+export async function billSubscriptionInTransaction(client: pg.PoolClient, subscriptionId: number, runDate = todayIso(), opts: BillingOptions = {}, taxRules?: TaxRule[]): Promise<SubscriptionBillingResult> {
+  const sub = await loadSubscription(client, subscriptionId);
+  if (!sub) throw notFound('Subscription not found');
+  const result: SubscriptionBillingResult = { subscriptionId, invoiceIds: [], periodsSkipped: 0 };
+  const pausedThrough = sub.status === 'paused' && opts.includePausedBeforePause && sub.pausedDate ? addDays(sub.pausedDate, -1) : null;
+  if ((sub.status !== 'active' && !pausedThrough) || !sub.nextBillingDate) return result;
+  const throughDate = pausedThrough && pausedThrough < runDate ? pausedThrough : runDate;
 
-    const rules = taxRules ?? (await activeTaxRules(client));
-    const lines = await loadLines(client, sub.id);
-    let next: string | null = sub.nextBillingDate;
-
-    for (let i = 0; next && next <= runDate && i < MAX_PERIODS_PER_RUN; i += 1) {
-      if (sub.expiryDate && next > sub.expiryDate) {
-        next = null;
-        break;
-      }
-      const periodStart: string = next;
-      const nextStart = nextAnchoredDate(sub.startDate, periodStart, sub.billingInterval);
-      let periodEnd = addDays(nextStart, -1);
-      if (sub.expiryDate && periodEnd > sub.expiryDate) periodEnd = sub.expiryDate;
-
-      const invoiceId = await createPeriodInvoice(client, sub, lines, rules, periodStart, periodEnd, runDate, opts);
-      if (invoiceId) result.invoiceIds.push(invoiceId);
-      else result.periodsSkipped += 1;
-
-      next = nextStart;
-    }
-    if (next && sub.expiryDate && next > sub.expiryDate) next = null;
-
-    await client.query('UPDATE subscriptions SET next_billing_date = $2, updated_at = now() WHERE id = $1', [sub.id, next]);
-    return result;
+  const rules = taxRules ?? (await activeTaxRules(client));
+  const lines = await loadLines(client, sub.id);
+  const billed = await client.query<{ start: string; end: string }>(
+    'SELECT billing_period_start AS start, billing_period_end AS end FROM invoices WHERE subscription_id = $1 ORDER BY billing_period_start, billing_period_end DESC',
+    [sub.id],
+  );
+  // Every invoice carries the full recurring price, including an expiry-truncated final cycle.
+  // Treat that original cycle as billed so renewal/retries cannot charge its remainder again.
+  const billedCycles = billed.rows.map((period) => {
+    const cycleEnd = addDays(nextAnchoredDate(sub.startDate, period.start, sub.billingInterval), -1);
+    return { start: period.start, end: period.end > cycleEnd ? period.end : cycleEnd };
   });
+  let next: string | null = sub.nextBillingDate;
+
+  for (let i = 0; next && next <= throughDate && i < MAX_PERIODS_PER_RUN; i += 1) {
+    if (sub.expiryDate && next > sub.expiryDate) {
+      next = null;
+      break;
+    }
+    // A rewound cursor must skip an already charged cycle, even when renewal would now calculate
+    // a longer end date for an older expiry-truncated invoice.
+    const covered = billedCycles.find((period) => period.start <= next! && period.end >= next!);
+    if (covered) {
+      result.periodsSkipped += 1;
+      next = addDays(covered.end, 1);
+      continue;
+    }
+    const periodStart: string = next;
+    const nextStart = nextAnchoredDate(sub.startDate, periodStart, sub.billingInterval);
+    let periodEnd = addDays(nextStart, -1);
+    if (sub.expiryDate && periodEnd > sub.expiryDate) periodEnd = sub.expiryDate;
+    if (pausedThrough && periodEnd > pausedThrough) periodEnd = pausedThrough;
+    const upcoming = billed.rows.find((period) => period.start > periodStart && period.start <= periodEnd);
+    if (upcoming) periodEnd = addDays(upcoming.start, -1);
+
+    const invoiceId = await createPeriodInvoice(client, sub, lines, rules, periodStart, periodEnd, runDate, opts);
+    if (invoiceId) result.invoiceIds.push(invoiceId);
+    else result.periodsSkipped += 1;
+
+    next = addDays(periodEnd, 1);
+  }
+  if (next && sub.expiryDate && next > sub.expiryDate) next = null;
+
+  await client.query('UPDATE subscriptions SET next_billing_date = $2, updated_at = now() WHERE id = $1', [sub.id, next]);
+  return result;
 }
 
-/** Billing day: finds every active subscription due on or before `runDate` and bills it. One failure never stops the run. */
+export async function billSubscription(subscriptionId: number, runDate = todayIso(), opts: BillingOptions = {}, taxRules?: TaxRule[]) {
+  return withTransaction((client) => billSubscriptionInTransaction(client, subscriptionId, runDate, opts, taxRules));
+}
+
+/** Bills due active periods and pre-pause arrears. Paused intervals stay unbilled; one failure never stops the run. */
 export async function runBilling(runDate = todayIso(), opts: Omit<BillingOptions, 'runId'> = {}): Promise<BillingRunResult> {
   const run = await pool.query<{ id: number }>('INSERT INTO billing_runs (run_date, triggered_by) VALUES ($1, $2) RETURNING id', [runDate, opts.actorId ?? null]);
   const runId = run.rows[0].id;
@@ -194,14 +222,17 @@ export async function runBilling(runDate = todayIso(), opts: Omit<BillingOptions
 
   try {
     const due = await pool.query<{ id: number }>(
-      `SELECT id FROM subscriptions WHERE status = 'active' AND next_billing_date IS NOT NULL AND next_billing_date <= $1 ORDER BY id`,
+      `SELECT id FROM subscriptions
+        WHERE next_billing_date IS NOT NULL AND next_billing_date <= $1
+          AND (status = 'active' OR (status = 'paused' AND paused_at IS NOT NULL AND next_billing_date < paused_at::date))
+        ORDER BY id`,
       [runDate],
     );
     const taxRules = await activeTaxRules();
     for (const { id } of due.rows) {
       result.subscriptionsChecked += 1;
       try {
-        const billed = await billSubscription(id, runDate, { ...opts, runId }, taxRules);
+        const billed = await billSubscription(id, runDate, { ...opts, runId, includePausedBeforePause: true }, taxRules);
         result.invoiceIds.push(...billed.invoiceIds);
         result.periodsSkipped += billed.periodsSkipped;
       } catch (error) {

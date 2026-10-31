@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { updateAddons } from './addons.js';
 import { query } from '../../db/pool.js';
 import { customerScope } from '../../lib/customer-access.js';
 import { idParamSchema } from '../../lib/validation.js';
@@ -11,6 +12,7 @@ import {
   renewInput,
   statusInput,
   updateSubscriptionInput,
+  updateAddonsInput,
 } from './schemas.js';
 import {
   closeExpiredSubscriptions,
@@ -86,22 +88,22 @@ subscriptionsRouter.put('/:id/status', requireInternal, async (req, res) => {
   res.json(await transition(id, status, currentUser(req), reason));
 });
 
-subscriptionsRouter.post('/:id/pause', requireInternal, async (req, res) => {
+subscriptionsRouter.post('/:id/pause', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   res.json(await transition(id, 'paused', currentUser(req), reasonInput.parse(req.body ?? {}).reason));
 });
 
-subscriptionsRouter.post('/:id/resume', requireInternal, async (req, res) => {
+subscriptionsRouter.post('/:id/resume', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   res.json(await transition(id, 'active', currentUser(req)));
 });
 
-subscriptionsRouter.post('/:id/renew', requireInternal, async (req, res) => {
+subscriptionsRouter.post('/:id/renew', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   res.json(await renew(id, renewInput.parse(req.body ?? {}).periods, currentUser(req)));
 });
 
-subscriptionsRouter.post('/:id/close', requireInternal, async (req, res) => {
+subscriptionsRouter.post('/:id/close', async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   res.json(await transition(id, 'closed', currentUser(req), reasonInput.parse(req.body ?? {}).reason));
 });
@@ -109,4 +111,9 @@ subscriptionsRouter.post('/:id/close', requireInternal, async (req, res) => {
 subscriptionsRouter.post('/:id/cancel', requireInternal, async (req, res) => {
   const { id } = idParamSchema.parse(req.params);
   res.json(await transition(id, 'cancelled', currentUser(req), reasonInput.parse(req.body ?? {}).reason));
+});
+
+subscriptionsRouter.put('/:id/add-ons', requireInternal, async (req, res) => {
+  const { id } = idParamSchema.parse(req.params);
+  res.json(await updateAddons(id, updateAddonsInput.parse(req.body), currentUser(req)));
 });

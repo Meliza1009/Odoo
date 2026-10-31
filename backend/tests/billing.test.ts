@@ -132,7 +132,8 @@ describe('billing run', () => {
 
     await runBilling(today);
     expect(await invoicesFor(paused)).toHaveLength(0);
-    expect(await invoicesFor(closed)).toHaveLength(0);
+    // Closing invoices the current due cycle once; a later run must not add another.
+    expect(await invoicesFor(closed)).toHaveLength(1);
     expect(await invoicesFor(quote.body.id)).toHaveLength(0);
   });
 
