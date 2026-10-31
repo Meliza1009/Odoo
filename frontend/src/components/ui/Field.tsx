@@ -1,8 +1,8 @@
 import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
 
 const controlClass = (error?: string) =>
-  `block w-full rounded-lg border bg-white px-3 py-2 text-sm text-ink shadow-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:bg-slate-100 ${
-    error ? 'border-danger focus:ring-danger/30' : 'border-slate-300 focus:border-accent focus:ring-accent/30'
+  `block w-full rounded-control bg-surface px-3 text-sm text-ink shadow-xs ring-1 ring-inset transition duration-200 ease-soft placeholder:text-slate-400 focus:outline-none focus:ring-2 disabled:bg-slate-50 disabled:text-slate-500 read-only:bg-slate-50 ${
+    error ? 'ring-danger/60 focus:ring-danger/50' : 'ring-slate-900/10 hover:ring-slate-900/20 focus:ring-accent/50'
   }`
 
 interface WrapperProps {
@@ -16,9 +16,9 @@ interface WrapperProps {
 
 function FieldWrapper({ id, label, error, hint, required, children }: WrapperProps) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-ink">
+        <label htmlFor={id} className="block text-[13px] font-medium text-slate-700">
           {label}
           {required && (
             <span aria-hidden="true" className="ml-0.5 text-danger">
@@ -29,11 +29,11 @@ function FieldWrapper({ id, label, error, hint, required, children }: WrapperPro
       )}
       {children}
       {error ? (
-        <p id={`${id}-error`} role="alert" className="text-xs text-danger">
+        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-danger">
           {error}
         </p>
       ) : (
-        hint && <p className="text-xs text-slate-500">{hint}</p>
+        hint && <p className="text-xs leading-relaxed text-muted">{hint}</p>
       )}
     </div>
   )
@@ -55,7 +55,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input({ l
         id={inputId}
         aria-invalid={!!error}
         aria-describedby={error ? `${inputId}-error` : undefined}
-        className={`${controlClass(error)} ${className}`}
+        className={`h-9 ${controlClass(error)} ${className}`}
         {...props}
       />
     </FieldWrapper>
@@ -78,7 +78,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   const selectId = id ?? autoId
   return (
     <FieldWrapper id={selectId} label={label} error={error} hint={hint} required={props.required}>
-      <select ref={ref} id={selectId} aria-invalid={!!error} className={`${controlClass(error)} ${className}`} {...props}>
+      <select
+        ref={ref}
+        id={selectId}
+        aria-invalid={!!error}
+        className={`h-9 appearance-none bg-[url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2016%2016'%20fill='none'%20stroke='%235b6474'%20stroke-width='1.5'%3E%3Cpath%20d='M4%206l4%204%204-4'/%3E%3C/svg%3E")] bg-[length:14px] bg-[right_0.6rem_center] bg-no-repeat pr-8 ${controlClass(error)} ${className}`}
+        {...props}
+      >
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -104,7 +110,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   const textareaId = id ?? autoId
   return (
     <FieldWrapper id={textareaId} label={label} error={error} hint={hint} required={props.required}>
-      <textarea ref={ref} id={textareaId} rows={rows} aria-invalid={!!error} className={`${controlClass(error)} ${className}`} {...props} />
+      <textarea ref={ref} id={textareaId} rows={rows} aria-invalid={!!error} className={`py-2 leading-relaxed ${controlClass(error)} ${className}`} {...props} />
     </FieldWrapper>
   )
 })

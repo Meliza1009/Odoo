@@ -1,4 +1,4 @@
-import { FilePlus2, Plus } from 'lucide-react'
+import { FilePlusIcon, PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ListCard } from '../../components/ListCard'
@@ -69,10 +69,10 @@ export function SubscriptionsPage({ kind }: Props) {
         description={isQuotes ? 'Drafts and quotations awaiting customer acceptance.' : 'Confirmed, running, paused and finished subscriptions.'}
         actions={
           <>
-            <Button variant="secondary" icon={<FilePlus2 className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new?mode=template')}>
+            <Button variant="secondary" icon={<FilePlusIcon className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new?mode=template')}>
               From template
             </Button>
-            <Button icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new')}>
+            <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new')}>
               New quotation
             </Button>
           </>

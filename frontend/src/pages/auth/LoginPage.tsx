@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { EyeIcon, EyeSlashIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -89,7 +89,7 @@ export function LoginPage() {
             className="absolute right-2 top-[30px] rounded p-1 text-slate-400 hover:text-slate-600"
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showPassword ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
           </button>
         </div>
         <div className="flex justify-end">
@@ -103,9 +103,10 @@ export function LoginPage() {
       </form>
 
       {SHOW_DEMO && (
-        <div className="mt-6 rounded-lg border border-dashed border-slate-300 p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Demo accounts</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-6 rounded-control bg-slate-900/[0.03] p-3.5 ring-1 ring-inset ring-slate-900/[0.06]">
+          <p className="text-[13px] font-medium text-ink">Try a demo account</p>
+          <p className="mt-0.5 text-xs text-muted">Fills in the email and password for you.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {DEMO_ACCOUNTS.map((account) => (
               <Button
                 key={account.email}

@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { api, errorMessage } from '../../api/client'
 import { useAuth } from '../../auth/useAuth'
@@ -52,7 +52,7 @@ export function ProductsPage() {
         description="What you sell, with variant pricing such as brand or support level."
         actions={
           isAdmin && (
-            <Button icon={<Plus className="h-4 w-4" />} onClick={() => setModal({ product: null })}>
+            <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setModal({ product: null })}>
               New product
             </Button>
           )

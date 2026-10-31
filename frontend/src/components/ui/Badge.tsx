@@ -4,19 +4,19 @@ import { titleCase } from '../../lib/format'
 type Tone = 'gray' | 'blue' | 'indigo' | 'green' | 'amber' | 'red' | 'teal' | 'navy'
 
 const tones: Record<Tone, string> = {
-  gray: 'bg-slate-100 text-slate-700 ring-slate-200',
-  blue: 'bg-sky-50 text-sky-700 ring-sky-200',
-  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-  green: 'bg-green-50 text-green-700 ring-green-200',
-  amber: 'bg-amber-50 text-amber-700 ring-amber-200',
-  red: 'bg-red-50 text-red-700 ring-red-200',
-  teal: 'bg-teal-50 text-teal-700 ring-teal-200',
-  navy: 'bg-primary/10 text-primary ring-primary/20',
+  gray: 'bg-slate-100 text-slate-600 ring-slate-900/[0.06]',
+  blue: 'bg-sky-50 text-sky-700 ring-sky-700/10',
+  indigo: 'bg-indigo-50 text-indigo-700 ring-indigo-700/10',
+  green: 'bg-emerald-50 text-emerald-700 ring-emerald-700/10',
+  amber: 'bg-amber-50 text-amber-800 ring-amber-700/15',
+  red: 'bg-orange-50 text-orange-800 ring-orange-700/15',
+  teal: 'bg-accent-soft text-accent-dark ring-accent-dark/15',
+  navy: 'bg-primary/[0.06] text-primary ring-primary/10',
 }
 
 export function Badge({ tone = 'gray', children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${tones[tone]}`}>
+    <span className={`inline-flex items-center whitespace-nowrap rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${tones[tone]}`}>
       {children}
     </span>
   )
@@ -29,7 +29,7 @@ const statusTones: Record<string, Tone> = {
   confirmed: 'indigo',
   active: 'green',
   paused: 'amber',
-  cancelled: 'red',
+  cancelled: 'gray',
   closed: 'navy',
   paid: 'green',
   overdue: 'red',

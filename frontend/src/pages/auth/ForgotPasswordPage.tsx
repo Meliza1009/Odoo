@@ -1,4 +1,4 @@
-import { MailCheck } from 'lucide-react'
+import { EnvelopeSimpleOpenIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
@@ -37,7 +37,7 @@ export function ForgotPasswordPage() {
       <AuthLayout title="Check your email" footer={footer}>
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="rounded-full bg-accent/10 p-3 text-accent-dark">
-            <MailCheck className="h-6 w-6" />
+            <EnvelopeSimpleOpenIcon className="h-6 w-6" />
           </div>
           <p className="text-sm text-slate-600">
             If <span className="font-medium text-ink">{sentTo}</span> is registered, we have sent a link to reset your password. It expires in 30 minutes.

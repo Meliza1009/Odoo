@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { XIcon } from '@phosphor-icons/react'
 import { useEffect, type ReactNode } from 'react'
 import { Button } from './Button'
 
@@ -11,7 +11,7 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg'
 }
 
-const widths = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl' }
+const widths = { sm: 'sm:max-w-md', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl' }
 
 export function Modal({ open, title, onClose, children, footer, size = 'md' }: ModalProps) {
   useEffect(() => {
@@ -27,17 +27,17 @@ export function Modal({ open, title, onClose, children, footer, size = 'md' }: M
 
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="absolute inset-0 bg-primary/50 backdrop-blur-[1px]" onClick={onClose} />
-      <div className={`relative flex max-h-[92vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl ${widths[size]}`}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">{title}</h2>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-500 hover:bg-slate-100" aria-label="Close">
-            <X className="h-5 w-5" />
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="absolute inset-0 animate-fade bg-primary/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className={`relative flex max-h-[92dvh] w-full animate-pop flex-col rounded-t-surface bg-surface shadow-pop ring-1 ring-slate-900/[0.08] sm:rounded-surface ${widths[size]}`}>
+        <div className="flex items-center justify-between gap-4 px-6 pb-2 pt-5">
+          <h2 className="truncate text-[17px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+          <button onClick={onClose} className="-mr-2 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-900/[0.05] hover:text-ink" aria-label="Close">
+            <XIcon className="h-[18px] w-[18px]" />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">{footer}</div>}
+        <div className="overflow-y-auto px-6 pb-5 pt-2">{children}</div>
+        {footer && <div className="flex flex-wrap justify-end gap-2 rounded-b-surface border-t border-slate-900/[0.06] bg-slate-50/70 px-6 py-3.5">{footer}</div>}
       </div>
     </div>
   )
@@ -72,7 +72,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', 
         </>
       }
     >
-      <div className="text-sm text-slate-600">{message}</div>
+      <div className="text-sm leading-relaxed text-muted">{message}</div>
     </Modal>
   )
 }

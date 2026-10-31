@@ -1,4 +1,4 @@
-import { ArrowLeft, Banknote, CheckCircle2, Download, Mail, Printer, XCircle } from 'lucide-react'
+import { ArrowLeftIcon, CheckCircleIcon, DownloadSimpleIcon, EnvelopeSimpleIcon, MoneyIcon, PrinterIcon, XCircleIcon } from '@phosphor-icons/react'
 import { useCallback, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, errorMessage } from '../../api/client'
@@ -55,28 +55,28 @@ export function InvoiceDetailPage({ portal = false }: { portal?: boolean }) {
   return (
     <>
       <Link to={`${base}/invoices`} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-ink">
-        <ArrowLeft className="h-4 w-4" /> {portal ? 'My invoices' : 'Invoices'}
+        <ArrowLeftIcon className="h-4 w-4" /> {portal ? 'My invoices' : 'Invoices'}
       </Link>
       <PageHeader
         title={invoice.invoiceNumber}
-        description={`${invoice.customerName} · ${formatDate(invoice.billingPeriodStart)} – ${formatDate(invoice.billingPeriodEnd)}`}
+        description={`${invoice.customerName} · ${formatDate(invoice.billingPeriodStart)} - ${formatDate(invoice.billingPeriodEnd)}`}
         actions={
           <>
-            <Button variant="secondary" icon={<Printer className="h-4 w-4" />} loading={busy === 'print'} onClick={() => print(false)}>
+            <Button variant="secondary" icon={<PrinterIcon className="h-4 w-4" />} loading={busy === 'print'} onClick={() => print(false)}>
               Print
             </Button>
-            <Button variant="secondary" icon={<Download className="h-4 w-4" />} loading={busy === 'download'} onClick={() => print(true)}>
+            <Button variant="secondary" icon={<DownloadSimpleIcon className="h-4 w-4" />} loading={busy === 'download'} onClick={() => print(true)}>
               Download
             </Button>
             {!portal && invoice.status === 'draft' && (
-              <Button icon={<CheckCircle2 className="h-4 w-4" />} loading={busy === 'confirm'} onClick={() => act('confirm', () => api.post(`/invoices/${invoice.id}/confirm`), 'Invoice confirmed')}>
+              <Button icon={<CheckCircleIcon className="h-4 w-4" />} loading={busy === 'confirm'} onClick={() => act('confirm', () => api.post(`/invoices/${invoice.id}/confirm`), 'Invoice confirmed')}>
                 Confirm
               </Button>
             )}
             {!portal && ['confirmed', 'paid'].includes(invoice.status) && (
               <Button
                 variant="secondary"
-                icon={<Mail className="h-4 w-4" />}
+                icon={<EnvelopeSimpleIcon className="h-4 w-4" />}
                 loading={busy === 'send'}
                 disabled={!invoice.customerEmail}
                 title={invoice.customerEmail ? undefined : 'The customer has no email address'}
@@ -86,12 +86,12 @@ export function InvoiceDetailPage({ portal = false }: { portal?: boolean }) {
               </Button>
             )}
             {canPay && (
-              <Button variant="accent" icon={<Banknote className="h-4 w-4" />} onClick={() => setPaying(true)}>
+              <Button variant="accent" icon={<MoneyIcon className="h-4 w-4" />} onClick={() => setPaying(true)}>
                 Record payment
               </Button>
             )}
             {canCancel && (
-              <Button variant="ghost" className="text-danger" icon={<XCircle className="h-4 w-4" />} onClick={() => setCancelling(true)}>
+              <Button variant="ghost" className="text-danger" icon={<XCircleIcon className="h-4 w-4" />} onClick={() => setCancelling(true)}>
                 Cancel
               </Button>
             )}
@@ -166,7 +166,7 @@ export function InvoiceDetailPage({ portal = false }: { portal?: boolean }) {
 
         <Card className="h-fit p-5">
           <h2 className="mb-4 font-semibold text-ink">Bill to</h2>
-          <DetailList
+          <DetailList columns={1}
             items={[
               { label: 'Customer', value: portal ? invoice.customerName : <Link className="text-accent-dark hover:underline" to={`/app/customers/${invoice.customerId}`}>{invoice.customerName}</Link> },
               { label: 'Email', value: invoice.customerEmail },

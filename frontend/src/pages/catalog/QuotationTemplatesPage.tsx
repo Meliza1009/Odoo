@@ -1,4 +1,4 @@
-import { FilePlus2, Plus } from 'lucide-react'
+import { FilePlusIcon, PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -47,11 +47,11 @@ export function QuotationTemplatesPage() {
         description="Pre-configured plans and product lines, so a quotation takes seconds."
         actions={
           <>
-            <Button variant="secondary" icon={<FilePlus2 className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new?mode=template')}>
+            <Button variant="secondary" icon={<FilePlusIcon className="h-4 w-4" />} onClick={() => navigate('/app/subscriptions/new?mode=template')}>
               Quote from template
             </Button>
             {isAdmin && (
-              <Button icon={<Plus className="h-4 w-4" />} onClick={() => setModal({ template: null })}>
+              <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setModal({ template: null })}>
                 New template
               </Button>
             )}

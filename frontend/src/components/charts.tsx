@@ -14,20 +14,25 @@ export function RevenueChart({ data, height = 280 }: { data: { period: string; i
     <div style={{ height }} role="img" aria-label="Invoiced and collected revenue by month">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-          <XAxis dataKey="period" tickFormatter={monthLabel} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
-          <YAxis tickFormatter={(v) => formatCompactMoney(v)} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={64} />
-          <Tooltip formatter={tooltipMoney} labelFormatter={(l) => monthLabel(String(l))} cursor={{ fill: '#f1f5f9' }} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="invoiced" name="Invoiced" fill="#14213d" radius={[4, 4, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="collected" name="Collected" fill="#00bfa6" radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <CartesianGrid vertical={false} stroke="#eef1f4" />
+          <XAxis dataKey="period" tickFormatter={monthLabel} tick={{ fontSize: 12, fill: '#5b6474' }} axisLine={false} tickLine={false} dy={6} interval="preserveStartEnd" minTickGap={24} />
+          <YAxis tickFormatter={(v) => formatCompactMoney(v)} tick={{ fontSize: 12, fill: '#5b6474' }} axisLine={false} tickLine={false} width={60} />
+          <Tooltip
+            formatter={tooltipMoney}
+            labelFormatter={(l) => monthLabel(String(l))}
+            cursor={{ fill: 'rgb(14 23 38 / 0.035)' }}
+            contentStyle={{ borderRadius: 10, border: '1px solid rgb(14 23 38 / 0.08)', boxShadow: '0 12px 32px -16px rgb(14 23 38 / 0.25)', fontSize: 13 }}
+          />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} formatter={(v) => <span style={{ color: '#5b6474' }}>{v}</span>} />
+          <Bar dataKey="invoiced" name="Invoiced" fill="#cfd6e0" radius={[5, 5, 1, 1]} maxBarSize={22} />
+          <Bar dataKey="collected" name="Collected" fill="#14a693" radius={[5, 5, 1, 1]} maxBarSize={22} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   )
 }
 
-const PIE_COLORS = ['#14213d', '#00bfa6', '#6366f1', '#f59e0b', '#94a3b8']
+const PIE_COLORS = ['#0d8274', '#14a693', '#7fd0c4', '#94a3b8', '#cfd6e0']
 
 export function BreakdownPie({ data, nameKey, valueKey, money = true }: { data: Record<string, unknown>[]; nameKey: string; valueKey: string; money?: boolean }) {
   const rows = data.filter((d) => Number(d[valueKey]) > 0)

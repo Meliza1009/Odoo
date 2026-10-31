@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeftIcon } from '@phosphor-icons/react'
 import { useCallback, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -34,7 +34,7 @@ export function SubscriptionFormPage() {
   return (
     <>
       <Link to={back} className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-ink">
-        <ArrowLeft className="h-4 w-4" /> Back
+        <ArrowLeftIcon className="h-4 w-4" /> Back
       </Link>
       <PageHeader title={sub ? `Edit ${sub.subscriptionNumber}` : 'New quotation'} description="Plan, customer and product lines. Prices default to the catalogue and can be overridden per line." />
       {!sub && (

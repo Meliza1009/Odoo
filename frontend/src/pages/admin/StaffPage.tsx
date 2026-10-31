@@ -1,4 +1,4 @@
-import { KeyRound, Plus } from 'lucide-react'
+import { KeyIcon, PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { api, errorMessage } from '../../api/client'
@@ -38,7 +38,7 @@ export function StaffPage() {
         title="Staff"
         description="Admins manage settings, catalogue and discounts. Staff handle customers, quotations, invoices and payments."
         actions={
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setModal({ user: null })}>
+          <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setModal({ user: null })}>
             Add staff member
           </Button>
         }
@@ -118,7 +118,7 @@ function StaffModal({ user, onClose, onSaved }: { user: User | null; onClose: ()
       footer={
         <>
           {user && (
-            <Button variant="ghost" className="mr-auto" icon={<KeyRound className="h-4 w-4" />} onClick={() => setResetting(true)}>
+            <Button variant="ghost" className="mr-auto" icon={<KeyIcon className="h-4 w-4" />} onClick={() => setResetting(true)}>
               Reset password
             </Button>
           )}

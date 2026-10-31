@@ -31,7 +31,7 @@ export function ListCard<T>({ list, columns, rowKey, searchPlaceholder = 'Search
   const filtering = !!list.search.trim()
   return (
     <Card>
-      <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
+      <div className="flex flex-col gap-3 border-b border-slate-900/[0.06] px-5 py-3.5 lg:flex-row lg:items-center">
         <SearchInput className="w-full lg:max-w-xs" placeholder={searchPlaceholder} aria-label={searchPlaceholder} value={list.search} onChange={(e) => list.setSearch(e.target.value)} />
         {filters && <div className="flex flex-wrap items-center gap-3">{filters}</div>}
       </div>

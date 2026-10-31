@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, RefreshCcw, Wallet } from 'lucide-react'
+import { ArrowsClockwiseIcon, CalendarDotsIcon, WalletIcon, WarningIcon } from '@phosphor-icons/react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../../api/client'
 import { useAuth } from '../../auth/useAuth'
@@ -52,10 +52,10 @@ export function PortalDashboardPage() {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active subscriptions" value={active.length} icon={<RefreshCcw className="h-5 w-5" />} />
-        <StatCard label="Amount due" value={formatMoney(data.open.summary.amountDue)} hint={`${data.open.total} unpaid invoice${data.open.total === 1 ? '' : 's'}`} icon={<Wallet className="h-5 w-5" />} />
-        <StatCard label="Overdue" value={formatMoney(overdueTotal)} icon={<AlertTriangle className="h-5 w-5" />} />
-        <StatCard label="Next invoice" value={nextBilling ? formatDate(nextBilling) : '-'} icon={<CalendarClock className="h-5 w-5" />} />
+        <StatCard label="Active subscriptions" value={active.length} icon={<ArrowsClockwiseIcon className="h-5 w-5" />} />
+        <StatCard label="Amount due" value={formatMoney(data.open.summary.amountDue)} hint={`${data.open.total} unpaid invoice${data.open.total === 1 ? '' : 's'}`} icon={<WalletIcon className="h-5 w-5" />} />
+        <StatCard label="Overdue" value={formatMoney(overdueTotal)} icon={<WarningIcon className="h-5 w-5" />} />
+        <StatCard label="Next invoice" value={nextBilling ? formatDate(nextBilling) : '-'} icon={<CalendarDotsIcon className="h-5 w-5" />} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ListCard } from '../../components/ListCard'
@@ -38,7 +38,7 @@ export function CustomersPage() {
         title="Customers"
         description="Companies you bill, their contacts and balances."
         actions={
-          <Button icon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>
+          <Button icon={<PlusIcon className="h-4 w-4" />} onClick={() => setCreating(true)}>
             New customer
           </Button>
         }
