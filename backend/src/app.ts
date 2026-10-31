@@ -5,10 +5,16 @@ import morgan from 'morgan';
 import { config } from './config.js';
 import { pool } from './db/pool.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { billingRouter } from './modules/billing/routes.js';
+import { discountsRouter } from './modules/discounts/routes.js';
+import { invoicesRouter } from './modules/invoices/routes.js';
+import { paymentsRouter } from './modules/payments/routes.js';
 import { plansRouter } from './modules/plans/routes.js';
 import { productsRouter } from './modules/products/routes.js';
 import { quotationTemplatesRouter } from './modules/quotation-templates/routes.js';
+import { reportsRouter } from './modules/reports/routes.js';
 import { subscriptionsRouter } from './modules/subscriptions/routes.js';
+import { taxRulesRouter } from './modules/taxes/routes.js';
 
 export function createApp() {
   const app = express();
@@ -31,6 +37,12 @@ export function createApp() {
   api.use('/plans', plansRouter);
   api.use('/quotation-templates', quotationTemplatesRouter);
   api.use('/subscriptions', subscriptionsRouter);
+  api.use('/tax-rules', taxRulesRouter);
+  api.use('/discounts', discountsRouter);
+  api.use('/billing', billingRouter);
+  api.use('/invoices', invoicesRouter);
+  api.use('/payments', paymentsRouter);
+  api.use('/reports', reportsRouter);
   app.use('/api', api);
 
   app.use(notFoundHandler);
