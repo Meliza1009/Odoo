@@ -1,14 +1,17 @@
 import { LogOut, Menu, X } from 'lucide-react'
-import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { Suspense, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { ErrorBoundary } from '../components/ErrorBoundary'
 import { Logo } from '../components/Logo'
+import { LoadingState } from '../components/ui'
 import { portalNav } from '../navigation'
 
 /** Customer shell: simple top navigation. */
 export function PortalLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
 
   const handleLogout = async () => {
@@ -55,7 +58,11 @@ export function PortalLayout() {
         )}
       </header>
       <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
-        <Outlet />
+        <ErrorBoundary key={pathname}>
+          <Suspense fallback={<LoadingState />}>
+            <Outlet />
+          </Suspense>
+        </ErrorBoundary>
       </main>
     </div>
   )

@@ -20,7 +20,11 @@ function FieldWrapper({ id, label, error, hint, required, children }: WrapperPro
       {label && (
         <label htmlFor={id} className="block text-sm font-medium text-ink">
           {label}
-          {required && <span className="ml-0.5 text-danger">*</span>}
+          {required && (
+            <span aria-hidden="true" className="ml-0.5 text-danger">
+              *
+            </span>
+          )}
         </label>
       )}
       {children}
