@@ -27,7 +27,7 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
       </div>
 
       <aside className="loop-field relative hidden overflow-hidden bg-primary lg:flex lg:flex-col lg:justify-center" aria-hidden="true">
-        <div className="relative pl-14 xl:pl-20">
+        <div className="relative mx-auto w-full max-w-[840px] px-10 py-12 xl:px-14">
           <p className="mb-5 text-xs font-semibold tracking-[0.14em] text-[#57dbc7] uppercase">One connected workspace</p>
           <h2 className="max-w-[17ch] text-[2.6rem] font-semibold leading-[1.06] tracking-[-0.05em] text-white xl:text-[3.2rem]">More clarity, every billing cycle.</h2>
           <ul className="mt-7 space-y-3">
@@ -40,13 +40,13 @@ export function AuthLayout({ title, subtitle, children, footer }: { title: strin
               </li>
             ))}
           </ul>
-          <div className="mt-12 -mr-40 rounded-l-[1.6rem] bg-white/10 p-1.5 pr-0 ring-1 ring-white/15">
+          <div className="mt-10 rounded-[1.6rem] bg-white/10 p-1.5 ring-1 ring-white/15">
             <img
               src="/screens/dashboard.jpg"
               alt=""
               width={2160}
               height={1350}
-              className="block h-auto w-full rounded-l-[calc(1.6rem-0.375rem)] shadow-[0_30px_60px_-30px_rgb(0_0_0/0.4)] ring-1 ring-white/15"
+              className="block h-auto w-full rounded-[calc(1.6rem-0.375rem)] shadow-[0_30px_60px_-30px_rgb(0_0_0/0.4)] ring-1 ring-white/15"
             />
           </div>
         </div>
